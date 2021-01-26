@@ -3,17 +3,6 @@
  * Date: January 26th 2021
  **/
 
-/****************************************************************************
-*
-* This demo showcases creating a GATT database using a predefined attribute table.
-* It acts as a GATT server and can send adv data, be connected by client.
-* Run the gatt_client demo, the client demo will automatically connect to the gatt_server_service_table demo.
-* Client demo will enable GATT server's notify after connection. The two devices will then exchange
-* data.
-*
-****************************************************************************/
-
-
  #include "freertos/FreeRTOS.h"
  #include "freertos/task.h"
  #include "freertos/event_groups.h"
@@ -65,7 +54,7 @@ static uint8_t raw_adv_data[] = {
         /* service uuid */
         0x03, 0x03, 0xFF, 0x00,
         /* device name */
-        0x0f, 0x09, 'E', 'S', 'P', '_', 'G', 'A', 'T', 'T', 'S', '_', 'D','E', 'M', 'O'
+        0x0f, 0x09, 'E', 'S', 'P', '_', 'S','E','N','S','O','R','I','N','G', '_'
 };
 static uint8_t raw_scan_rsp_data[] = {
         /* flags */
@@ -435,7 +424,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     } while (0);
 }
 
-void app_main(void)
+void gatt_server_task(void)
 {
     esp_err_t ret;
 
@@ -456,6 +445,7 @@ void app_main(void)
         return;
     }
 
+    // TODO: check if mode ESP_BT_MODE_BTDM (BLE + BT) is required for capacity sensoring
     ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
     if (ret) {
         ESP_LOGE(GATT_TABLE_TAG, "%s enable controller failed: %s", __func__, esp_err_to_name(ret));
