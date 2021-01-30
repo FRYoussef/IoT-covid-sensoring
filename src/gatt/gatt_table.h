@@ -31,4 +31,4 @@ enum
     SEN_IDX_NB, // table elements
 };
 
-void gatt_server_task(void);
+void gatt_server_task(void *pvparameters);
