@@ -1,0 +1,9 @@
+menu "ESP32 sensoring configuration"
+
+config LOG_TAG
+    string "Log tag"
+	default "ESP32_SENSORING"
+	help
+		Log tag to show or store app logouts.
+
+endmenu
