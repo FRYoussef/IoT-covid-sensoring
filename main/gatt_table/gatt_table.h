@@ -169,7 +169,7 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CO2_T_CFG]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      sizeof(uint16_t), sizeof(co2_ccc), (uint8_t *)co2_ccc}},
+      sizeof(uint16_t), sizeof(co2_ccc), (uint16_t *)co2_ccc}},
 
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CO2_ENB]  =
@@ -189,7 +189,7 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_TEMP_T_CFG]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      sizeof(uint16_t), sizeof(temp_ccc), (uint8_t *)temp_ccc}},
+      sizeof(uint16_t), sizeof(temp_ccc), (uint16_t *)temp_ccc}},
 
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_TEMP_ENB]  =
@@ -209,7 +209,7 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CAP_D_CFG]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      sizeof(uint16_t), sizeof(cap_ccc), (uint8_t *)cap_ccc}},
+      sizeof(uint16_t), sizeof(cap_ccc), (uint16_t *)cap_ccc}},
 
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CAP_ENB]  =

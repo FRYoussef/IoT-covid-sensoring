@@ -5,7 +5,7 @@
 
 #include "nvs_flash.h"
 
-#include "gatt_table.h"
+#include "gatt_table/gatt_table.h"
 
 void app_main(void) {
     esp_err_t ret;
