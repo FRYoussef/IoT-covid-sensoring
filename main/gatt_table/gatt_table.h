@@ -11,7 +11,6 @@
 #include <string.h>
 
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "esp_system.h"
 #include "esp_log.h"
@@ -69,8 +68,6 @@ typedef struct {
     uint8_t                 *prepare_buf;
     int                     prepare_len;
 } prepare_type_env_t;
-
-static prepare_type_env_t prepare_write_env;
 
 static uint8_t raw_adv_data[] = {
         /* flags */
@@ -138,15 +135,15 @@ static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_C
 static const uint8_t char_prop_read                =  ESP_GATT_CHAR_PROP_BIT_READ;
 static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-static uint8_t co2_char_value                = 0x00;
-static uint8_t temp_char_value               = 0x00;
-static uint8_t cap_char_value                = 0x00;
-static uint16_t co2_ccc                      = 0x00;
-static uint16_t temp_ccc                     = 0x00;
-static uint16_t cap_ccc                      = 0x00;
-static uint8_t co2_enb                       = 0x01;
-static uint8_t temp_enb                      = 0x01;
-static uint8_t cap_enb                       = 0x01;
+static uint8_t co2_char_value[2]                = {0x00, 0x00};
+static uint8_t temp_char_value[2]               = {0x00, 0x00};
+static uint8_t cap_char_value[2]                = {0x00, 0x00};
+static uint8_t co2_ccc[2]                       = {0x00, 0x00};
+static uint8_t temp_ccc[2]                      = {0x00, 0x00};
+static uint8_t cap_ccc[2]                       = {0x00, 0x00};
+static uint8_t co2_enb[1]                       = {0x01};
+static uint8_t temp_enb[1]                      = {0x01};
+static uint8_t cap_enb[1]                       = {0x01};
 
 /* Full Database Description - Used to add attributes into the database */
 static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
@@ -169,7 +166,7 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CO2_T_CFG]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      sizeof(uint16_t), sizeof(co2_ccc), (uint16_t *)co2_ccc}},
+      sizeof(uint16_t), sizeof(co2_ccc), (uint8_t *)co2_ccc}},
 
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CO2_ENB]  =
@@ -189,7 +186,7 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_TEMP_T_CFG]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      sizeof(uint16_t), sizeof(temp_ccc), (uint16_t *)temp_ccc}},
+      sizeof(uint16_t), sizeof(temp_ccc), (uint8_t *)temp_ccc}},
 
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_TEMP_ENB]  =
@@ -209,7 +206,7 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CAP_D_CFG]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      sizeof(uint16_t), sizeof(cap_ccc), (uint16_t *)cap_ccc}},
+      sizeof(uint16_t), sizeof(cap_ccc), (uint8_t *)cap_ccc}},
 
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CAP_ENB]  =

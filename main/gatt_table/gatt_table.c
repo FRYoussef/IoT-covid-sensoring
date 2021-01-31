@@ -88,22 +88,22 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 // enable/disable characteristic
                 uint8_t *char_cfg = NULL;
                 enum GattAttr char_idx = IDX_SVC; // use it as default value
-                uint8_t val = 0;
+                uint8_t *val = NULL;
 
                 if (sensoring_handle_table[IDX_CHAR_CO2_ENB] == param->write.handle) {
-                    char_cfg = &co2_enb;
+                    char_cfg = co2_enb;
                     char_idx = IDX_CHAR_CO2_VAL;
-                    val = co2_char_value;
+                    val = (uint8_t *) &co2_char_value;
                 } 
                 else if (sensoring_handle_table[IDX_CHAR_TEMP_ENB] == param->write.handle) {
-                    char_cfg = &temp_enb;
+                    char_cfg = temp_enb;
                     char_idx = IDX_CHAR_TEMP_VAL;
-                    val = temp_char_value;
+                    val = (uint8_t *) &temp_char_value;
                 }
                 else if (sensoring_handle_table[IDX_CHAR_CAP_ENB] == param->write.handle) {
-                    char_cfg = &cap_enb;
+                    char_cfg = cap_enb;
                     char_idx = IDX_CHAR_CAP_VAL;
-                    val = cap_char_value;
+                    val = (uint8_t *) &cap_char_value;
                 }
 
                 if (char_cfg != NULL && param->write.len == 1){
@@ -111,29 +111,32 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
 
                     if (descr_value == 1){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify enable");
-                        *char_cfg = descr_value;
+                        char_cfg[0] = descr_value;
                         esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id, sensoring_handle_table[char_idx],
                             sizeof(val), val, false);
                     }
                     else if (descr_value == 0){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify disable ");
-                        *char_cfg = descr_value;
+                        char_cfg[0] = descr_value;
                     }else{
                         ESP_LOGE(CONFIG_LOG_TAG, "unknown descr value");
                         esp_log_buffer_hex(CONFIG_LOG_TAG, param->write.value, param->write.len);
                     }
                 }
-                else if(heart_rate_handle_table[IDX_CHAR_CO2_T_CFG] == param->write.handle && param->write.len == 2) {
-                    co2_ccc = param->write.value[1] << 8 | param->write.value[0];
-                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CO2_T_CFG to %d", descr_value);
+                else if(sensoring_handle_table[IDX_CHAR_CO2_T_CFG] == param->write.handle && param->write.len == 2) {
+                    co2_ccc[0] = param->write.value[0];
+                    co2_ccc[1] = param->write.value[1];
+                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CO2_T_CFG to %d", co2_ccc[1] << 8 | co2_ccc[0]);
                 }
-                else if(heart_rate_handle_table[IDX_CHAR_TEMP_T_CFG] == param->write.handle && param->write.len == 2) {
-                    temp_ccc = param->write.value[1] << 8 | param->write.value[0];
-                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_TEMP_T_CFG to %d", descr_value);
+                else if(sensoring_handle_table[IDX_CHAR_TEMP_T_CFG] == param->write.handle && param->write.len == 2) {
+                    temp_ccc[0] = param->write.value[0];
+                    temp_ccc[1] = param->write.value[1];
+                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_TEMP_T_CFG to %d", temp_ccc[1] << 8 | temp_ccc[0]);
                 }
-                else if(heart_rate_handle_table[IDX_CHAR_CAP_D_CFG] == param->write.handle && param->write.len == 2) {
-                    cap_ccc = param->write.value[1] << 8 | param->write.value[0];
-                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CAP_D_CFG to %d", descr_value);
+                else if(sensoring_handle_table[IDX_CHAR_CAP_D_CFG] == param->write.handle && param->write.len == 2) {
+                    cap_ccc[0] = param->write.value[0];
+                    cap_ccc[1] = param->write.value[1];
+                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CAP_D_CFG to %d", cap_ccc[1] << 8 | cap_ccc[0]);
                 }
 
                 /* send response when param->write.need_rsp is true*/
@@ -145,7 +148,6 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         case ESP_GATTS_EXEC_WRITE_EVT: 
             // the length of gattc prepare write data must be less than GATT_CHAR_VAL_LEN_MAX. 
             ESP_LOGI(CONFIG_LOG_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
-            //example_exec_write_event_env(&prepare_write_env, param);
             break;
         case ESP_GATTS_MTU_EVT:
             ESP_LOGI(CONFIG_LOG_TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
