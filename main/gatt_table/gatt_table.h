@@ -125,25 +125,25 @@ static struct gatts_profile_inst sensoring_profile_tab[PROFILE_NUM] = {
 
 /* Service */
 static const uint16_t GATTS_SERVICE_UUID_TEST      = 0x00FF;
-static const uint16_t GATTS_CHAR_UUID_CO2       = 0xFF01;
-static const uint16_t GATTS_CHAR_UUID_TEMP       = 0xFF02;
-static const uint16_t GATTS_CHAR_UUID_CAP       = 0xFF03;
+static const uint16_t GATTS_CHAR_UUID_CO2          = 0xFF01;
+static const uint16_t GATTS_CHAR_UUID_TEMP         = 0xFF02;
+static const uint16_t GATTS_CHAR_UUID_CAP          = 0xFF03;
 
 static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
-static const uint8_t char_prop_read                =  ESP_GATT_CHAR_PROP_BIT_READ;
+static const uint8_t char_prop_read                = ESP_GATT_CHAR_PROP_BIT_READ;
 static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-static uint8_t co2_char_value[2]                = {0x00, 0x00};
-static uint8_t temp_char_value[2]               = {0x00, 0x00};
-static uint8_t cap_char_value[2]                = {0x00, 0x00};
-static uint8_t co2_ccc[2]                       = {0x00, 0x00};
-static uint8_t temp_ccc[2]                      = {0x00, 0x00};
-static uint8_t cap_ccc[2]                       = {0x00, 0x00};
-static uint8_t co2_enb[1]                       = {0x01};
-static uint8_t temp_enb[1]                      = {0x01};
-static uint8_t cap_enb[1]                       = {0x01};
+static uint8_t co2_char_value[2]                   = {0x00, 0x00};
+static uint8_t temp_char_value[2]                  = {0x00, 0x00};
+static uint8_t cap_char_value[2]                   = {0x00, 0x00};
+static uint8_t co2_ccc[2]                          = {0x00, 0x00};
+static uint8_t temp_ccc[2]                         = {0x00, 0x00};
+static uint8_t cap_ccc[2]                          = {0x00, 0x00};
+static uint8_t co2_enb[1]                          = {0x01};
+static uint8_t temp_enb[1]                         = {0x01};
+static uint8_t cap_enb[1]                          = {0x01};
 
 /* Full Database Description - Used to add attributes into the database */
 static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =

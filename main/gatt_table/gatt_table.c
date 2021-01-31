@@ -56,6 +56,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
 {
     switch (event) {
         case ESP_GATTS_REG_EVT:{
+            ESP_LOGI(CONFIG_LOG_TAG, "ESP_GATTS_REG_EVT");
             esp_err_t set_dev_name_ret = esp_ble_gap_set_device_name(DEVICE_NAME);
             if (set_dev_name_ret){
                 ESP_LOGE(CONFIG_LOG_TAG, "set device name failed, error code = %x", set_dev_name_ret);
@@ -107,7 +108,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     val = (uint8_t *) &cap_char_value;
                 }
 
-                if (char_cfg != NULL && param->write.len == 1){
+                if (char_cfg != NULL && param->write.len == 2){
                     uint8_t descr_value = param->write.value[0];
 
                     if (descr_value == 1){
@@ -176,7 +177,21 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             ESP_LOGI(CONFIG_LOG_TAG, "ESP_GATTS_DISCONNECT_EVT, reason = 0x%x", param->disconnect.reason);
             esp_ble_gap_start_advertising(&adv_params);
             break;
-        case ESP_GATTS_CREAT_ATTR_TAB_EVT:
+        case ESP_GATTS_CREAT_ATTR_TAB_EVT:{
+            if (param->add_attr_tab.status != ESP_GATT_OK){
+                ESP_LOGE(CONFIG_LOG_TAG, "create attribute table failed, error code=0x%x", param->add_attr_tab.status);
+            }
+            else if (param->add_attr_tab.num_handle != SEN_IDX_NB){
+                ESP_LOGE(CONFIG_LOG_TAG, "create attribute table abnormally, num_handle (%d) \
+                        doesn't equal to SEN_IDX_NB(%d)", param->add_attr_tab.num_handle, SEN_IDX_NB);
+            }
+            else {
+                ESP_LOGI(CONFIG_LOG_TAG, "create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
+                memcpy(sensoring_handle_table, param->add_attr_tab.handles, sizeof(sensoring_handle_table));
+                esp_ble_gatts_start_service(sensoring_handle_table[IDX_SVC]);
+            }
+            break;
+        }
         case ESP_GATTS_STOP_EVT:
         case ESP_GATTS_OPEN_EVT:
         case ESP_GATTS_CANCEL_OPEN_EVT:
