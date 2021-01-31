@@ -89,6 +89,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 uint8_t *char_cfg = NULL;
                 enum GattAttr char_idx = IDX_SVC; // use it as default value
                 uint8_t *val = NULL;
+                int n_elems = 2;
 
                 if (sensoring_handle_table[IDX_CHAR_CO2_ENB] == param->write.handle) {
                     char_cfg = co2_enb;
@@ -113,7 +114,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                         ESP_LOGI(CONFIG_LOG_TAG, "notify enable");
                         char_cfg[0] = descr_value;
                         esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id, sensoring_handle_table[char_idx],
-                            sizeof(val), val, false);
+                            sizeof(*val)*n_elems, val, false);
                     }
                     else if (descr_value == 0){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify disable ");
