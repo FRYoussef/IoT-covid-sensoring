@@ -3,6 +3,9 @@
  * Date: January 26th 2021
  **/
 
+#ifndef _GATT_TABLE_
+#define _GATT_TABLE_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,12 +46,10 @@ enum GattAttr{
     SEN_IDX_NB, // table elements
 };
 
-#define GATT_TABLE_TAG "GATT_SENSORING_TABLE"
-
 #define PROFILE_NUM                 1 // number of profiles
 #define PROFILE_APP_IDX             0 // profile index
 #define ESP_APP_ID                  0x55 // Application Profile ID
-#define SAMPLE_DEVICE_NAME          "ESP_GATT_SENSORING"
+#define DEVICE_NAME                 "ESP_GATT_SENSORING"
 #define SVC_INST_ID                 0
 
 /* The max length of characteristic value. When the GATT client performs a write or prepare write operation,
@@ -217,4 +218,6 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
       sizeof(uint16_t), sizeof(cap_enb), (uint8_t *)cap_enb}},
 };
 
-void gatt_server_task(void *pvparameters);
+void configure_gatt_server(void);
+
+#endif
