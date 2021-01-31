@@ -3,9 +3,9 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := main
+PROJECT_NAME := iot_covid_sensoring
 
-COMPONENT_ADD_INCLUDEDIRS := components/include
+COMPONENT_ADD_INCLUDEDIRS := components/gatt_table
 
 include $(IDF_PATH)/make/project.mk
 

@@ -139,15 +139,15 @@ static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_C
 static const uint8_t char_prop_read                =  ESP_GATT_CHAR_PROP_BIT_READ;
 static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-static const uint8_t co2_char_value                = 0x00;
-static const uint8_t temp_char_value               = 0x00;
-static const uint8_t cap_char_value                = 0x00;
-static const uint16_t co2_ccc                      = 0x00;
-static const uint16_t temp_ccc                     = 0x00;
-static const uint16_t cap_ccc                      = 0x00;
-static const uint8_t co2_enb                       = 0x01;
-static const uint8_t temp_enb                      = 0x01;
-static const uint8_t cap_enb                       = 0x01;
+static uint8_t co2_char_value                = 0x00;
+static uint8_t temp_char_value               = 0x00;
+static uint8_t cap_char_value                = 0x00;
+static uint16_t co2_ccc                      = 0x00;
+static uint16_t temp_ccc                     = 0x00;
+static uint16_t cap_ccc                      = 0x00;
+static uint8_t co2_enb                       = 0x01;
+static uint8_t temp_enb                      = 0x01;
+static uint8_t cap_enb                       = 0x01;
 
 /* Full Database Description - Used to add attributes into the database */
 static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
