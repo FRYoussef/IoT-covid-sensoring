@@ -8,6 +8,7 @@
 #include "driver/i2c.h"
 #include "sdkconfig.h"
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
 #define _I2C_NUMBER(num) I2C_NUM_##num
 #define I2C_NUMBER(num) _I2C_NUMBER(num)
 
@@ -24,7 +25,7 @@
 
 #define SI7021_SENSOR_ADDR 0x40   /*!< slave address for SI7021 sensor */
 #define SI7021_READ_TEMP 0xF3    /*!< READ op with no stretching  F3*/
-#define SI7021_READ_TEMP_HOLD 0xE3    /*!< READ op with  stretching  E3 */
+#define SI7021_READ_HUMIDITY 0xF5
 #define SENSOR_DELAY 20
 
 
@@ -48,14 +49,14 @@
  * | start | slave_addr + rd_bit + ack | read 1 byte + ack  | read 1 byte + nack | stop |
  * --------|---------------------------|--------------------|--------------------|------|
  */
-static esp_err_t i2c_master_sensor_test(i2c_port_t i2c_num, uint8_t *data_h, uint8_t *data_l)
+static esp_err_t i2c_master_sensor_test(i2c_port_t i2c_num, uint8_t *data_h, uint8_t *data_l, uint8_t measure)
 {
     int ret;
     //Send READ TEMP command (WRITE OPT)
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd); 
     i2c_master_write_byte(cmd, SI7021_SENSOR_ADDR << 1 | I2C_MASTER_WRITE, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, SI7021_READ_TEMP, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, measure, ACK_CHECK_EN);
     i2c_master_stop(cmd);
     ret = i2c_master_cmd_begin(i2c_num, cmd, I2C_TIMEOUT_MS / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
@@ -94,24 +95,49 @@ static esp_err_t i2c_master_init(void)
 }
 
 
-
-static void i2c_test_task(void *arg)
-{
+static esp_err_t get_temperature(i2c_port_t i2c_num, float *temperature){
     int ret;
     uint8_t sensor_data_h, sensor_data_l;
+
+    ret = i2c_master_sensor_test(i2c_num, &sensor_data_h, &sensor_data_l, SI7021_READ_TEMP);
+
+    uint16_t bytes;
+    bytes = (sensor_data_h << 8 | sensor_data_l);
+
+    *temperature = ( (175.72 * bytes) / 65536.0 ) - 46.85;
+
+    return ret;
+}
+
+static esp_err_t get_humidity(i2c_port_t i2c_num, float *humidity){
+    int ret;
+    uint8_t sensor_data_h, sensor_data_l;
+
+    ret = i2c_master_sensor_test(i2c_num, &sensor_data_h, &sensor_data_l, SI7021_READ_HUMIDITY);
+
+    uint16_t bytes;
+    bytes = (sensor_data_h << 8 | sensor_data_l);
+
+    *humidity = MIN(100.0, bytes * 125.0 / 65536.0 - 6.0);
+
+    return ret;
+}
+
+
+static void i2c_test_task(void *arg) {
+    int retT, retH;
+    float temperature, humidity;
+
     while (1) {
-        
-        ret = i2c_master_sensor_test(I2C_MASTER_NUM, &sensor_data_h, &sensor_data_l);
-        if (ret == ESP_ERR_TIMEOUT) {
+        retT = get_temperature(I2C_MASTER_NUM, &temperature);
+        retH = get_humidity(I2C_MASTER_NUM, &humidity);
+        if (retT == ESP_ERR_TIMEOUT && retH == ESP_ERR_TIMEOUT) {
             ESP_LOGE(CONFIG_LOG_TAG, "I2C Timeout");
-        } else if (ret == ESP_OK) {
-            uint16_t bytes;
-            printf("data_h: %02x\n", sensor_data_h);
-            printf("data_l: %02x\n", sensor_data_l);
-            bytes = (sensor_data_h << 8 | sensor_data_l);
-            printf("temp val: %.02f [ºC]\n", ( (175.72 * bytes) / 65536.0 ) - 46.85);
+        } else if (retT == ESP_OK && retH == ESP_OK) {
+            printf("temp val: %.02f [ºC]\n", temperature);
+            printf("hum val: %.02f %%\n", humidity);
         } else {
-            ESP_LOGW(CONFIG_LOG_TAG, "%s: No ack, sensor not connected...skip...", esp_err_to_name(ret));
+            ESP_LOGW(CONFIG_LOG_TAG, "%s: No ack, sensor not connected...skip...", esp_err_to_name(retT));
         }
         vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS  / portTICK_RATE_MS);
     }

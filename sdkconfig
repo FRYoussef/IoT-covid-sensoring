@@ -126,10 +126,6 @@ CONFIG_PARTITION_TABLE_MD5=y
 CONFIG_LOG_TAG="ESP32_SENSORING"
 
 #
-# Temperature sensor
-#
-
-#
 # I2C Master
 #
 CONFIG_I2C_MASTER_SCL=19
@@ -137,7 +133,6 @@ CONFIG_I2C_MASTER_SDA=18
 CONFIG_I2C_MASTER_PORT_NUM=1
 CONFIG_I2C_MASTER_FREQUENCY=100000
 # end of I2C Master
-# end of Temperature sensor
 # end of ESP32 sensoring configuration
 
 #
