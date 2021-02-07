@@ -28,7 +28,7 @@ void app_main(void) {
 
     ESP_ERROR_CHECK(i2c_master_init());
 
-    xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 3, NULL, 5, NULL, 1);
+    xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 3, NULL, 5, NULL, 0);
     esp_timer_start_periodic(timer_temp, CONFIG_SEND_FREQ_T);
     esp_timer_start_periodic(timer_hum, CONFIG_SEND_FREQ_H);
 

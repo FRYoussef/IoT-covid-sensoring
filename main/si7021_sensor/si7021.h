@@ -11,12 +11,12 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 #define SAMPLE_FREQ_T 5
-#define SAMPLE_FREQ_H 1 /*!< delay time between different test items */
+#define SAMPLE_FREQ_H 2 /*!< delay time between different test items */
 
 #define SI7021_SENSOR_ADDR 0x40   /*!< slave address for SI7021 sensor */
 #define SI7021_READ_TEMP 0xF3    /*!< READ op with no stretching  F3*/
 #define SI7021_READ_HUMIDITY 0xF5
-#define SENSOR_DELAY 20
+#define SENSOR_DELAY 30
 
 static struct CircularBuffer tBuffer;
 static struct CircularBuffer hBuffer;
