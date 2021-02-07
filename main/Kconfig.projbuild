@@ -35,13 +35,13 @@ menu "ESP32 sensoring configuration"
 	menu "si7021 sensor"
 		config SEND_FREQ_T
 			int "temperature sending frequency"
-			range 1 10000
-			default 5
+			range 1000000 1000000000000
+			default 5000000
 			help
-				seconds of sending frequency
+				microseconds of sending frequency
 
 		config TEMP_N_SAMPLES
-			int "sample number"
+			int "temperature sample number"
 			range 1 10
 			default 2
 			help
@@ -56,13 +56,13 @@ menu "ESP32 sensoring configuration"
 
 		config SEND_FREQ_H
 			int "humidity sending frequency"
-			range 1 10000
-			default 5
+			range 1000000 1000000000000
+			default 5000000
 			help
-				seconds of sending frequency
+				microseconds of sending frequency
 
 		config HUM_N_SAMPLES
-			int "sample number"
+			int "humidity sample number"
 			range 1 10
 			default 2
 			help

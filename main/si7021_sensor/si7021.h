@@ -6,6 +6,8 @@
 #ifndef _SI7021_
 #define _SI7021_
 
+#include "circular_buffer/circular_buffer.h"
+
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 #define SAMPLE_FREQ_T 5
@@ -16,6 +18,11 @@
 #define SI7021_READ_HUMIDITY 0xF5
 #define SENSOR_DELAY 20
 
+static struct CircularBuffer tBuffer;
+static struct CircularBuffer hBuffer;
+
 void si7021_task(void *arg);
+void sendTempCallback(void *arg);
+void sendHumCallback(void *arg);
 
 #endif

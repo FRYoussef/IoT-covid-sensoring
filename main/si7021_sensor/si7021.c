@@ -5,7 +5,6 @@
 
 #include <time.h>
 #include "i2c_controller/i2c_controller.h"
-#include "circular_buffer/circular_buffer.h"
 #include "si7021.h"
 
 esp_err_t get_temperature(i2c_port_t i2c_num, float *temperature){
@@ -43,10 +42,7 @@ void si7021_task(void *arg) {
     int ret;
     float temperature, humidity;
     double meanT = 0, meanH = 0;
-    uint32_t timeT = time(NULL), timeH = time(NULL), now = time(NULL);
-
-    struct CircularBuffer tBuffer;
-    struct CircularBuffer hBuffer;
+    uint32_t timeT = time(NULL), timeH = time(NULL);
 
     init_buffer(&tBuffer, CONFIG_TEMP_WINDOW_SIZE);
     init_buffer(&hBuffer, CONFIG_HUM_WINDOW_SIZE);
@@ -54,9 +50,8 @@ void si7021_task(void *arg) {
     ESP_LOGI(CONFIG_LOG_TAG, "Started si7021 task");
     while (1) {
 
-        now = time(NULL);
-        if((now - timeT) >= SAMPLE_FREQ_T){
-            timeT = now;
+        if((time(NULL) - timeT) >= SAMPLE_FREQ_T){
+            timeT = time(NULL);
 
             for(int i = 0; i < CONFIG_TEMP_N_SAMPLES; i++) {
                 ret = get_temperature(I2C_MASTER_NUM, &temperature);
@@ -72,12 +67,10 @@ void si7021_task(void *arg) {
             meanT /= CONFIG_TEMP_N_SAMPLES;
             add_element(&tBuffer, meanT);
             meanT = 0;
-            printf("temp val: %.02f [ºC]\n", get_element(&tBuffer));
         }
 
-        now = time(NULL);
-        if((now - timeH) >= SAMPLE_FREQ_H){
-            timeH = now;
+        if((time(NULL) - timeH) >= SAMPLE_FREQ_H){
+            timeH = time(NULL);
 
             for(int i = 0; i < CONFIG_HUM_N_SAMPLES; i++) {
                 ret = get_humidity(I2C_MASTER_NUM, &humidity);
@@ -93,13 +86,22 @@ void si7021_task(void *arg) {
             meanH /= CONFIG_HUM_N_SAMPLES;
             add_element(&hBuffer, meanH);
             meanH = 0;
-            printf("hum val: %.02f %%\n", get_element(&hBuffer));
         }
 
-        vTaskDelay((MIN(SAMPLE_FREQ_T, SAMPLE_FREQ_H) * 0.5)  / portTICK_RATE_MS);
+        vTaskDelay((MIN(SAMPLE_FREQ_T, SAMPLE_FREQ_H) * 0.25)  / portTICK_RATE_MS);
     }
 
     free_buffer(&tBuffer);
     free_buffer(&hBuffer);
     vTaskDelete(NULL);
+}
+
+
+void sendTempCallback(void *arg) {
+    //printf("temp val: %.02f [ºC]\n", get_element(&tBuffer));
+}
+
+
+void sendHumCallback(void *arg) {
+    //printf("hum val: %.02f %%\n", get_element(&hBuffer));
 }
