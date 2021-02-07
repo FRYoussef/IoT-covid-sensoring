@@ -32,4 +32,26 @@ menu "ESP32 sensoring configuration"
 				I2C Speed of Master device.
 	endmenu
 
+	menu "si7021 sensor"
+		config SEND_FREQ
+			int "send frequency"
+			range 500 100000000
+			default 5000
+			help
+				ms of send frequency
+
+		config N_SAMPLES
+			int "sample number"
+			range 1 10
+			default 2
+			help
+				number of samples for the mean filter
+
+		config WINDOW_SIZE
+			int "window size"
+			range 1 10
+			default 5
+			help
+				moving average to send
+	endmenu
 endmenu
