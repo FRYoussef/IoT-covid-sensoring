@@ -145,10 +145,10 @@ static uint8_t co2_char_value[2]                   = {0x00, 0x00};
 static uint8_t temp_char_value[2]                  = {0x01, 0x02}; // temp_char_value[0] = int part; temp_char_value[1] decimal part
 static uint8_t hum_char_value[2]                   = {0x00, 0x00};
 static uint8_t cap_char_value[2]                   = {0x00, 0x00};
-static uint8_t co2_ccc[2]                          = {0x00, 0x00};
-static uint8_t temp_ccc[2]                         = {0x00, 0x00};
-static uint8_t hum_ccc[2]                          = {0x00, 0x00};
-static uint8_t cap_ccc[2]                          = {0x00, 0x00};
+static uint8_t co2_ccc[2]                          = {0x05, 0x00};
+static uint8_t temp_ccc[2]                         = {0x05, 0x00};
+static uint8_t hum_ccc[2]                          = {0x05, 0x00};
+static uint8_t cap_ccc[2]                          = {0x05, 0x00};
 static uint8_t co2_enb[1]                          = {0x01};
 static uint8_t temp_enb[1]                         = {0x01};
 static uint8_t hum_enb[1]                          = {0x01};

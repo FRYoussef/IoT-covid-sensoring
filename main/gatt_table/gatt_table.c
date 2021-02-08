@@ -8,6 +8,13 @@
 
 void function(void *arg) {}
 
+
+void copy_char(uint8_t *in, uint8_t *out, int n){
+    for(int i = 0; i < n; i++)
+        out[i] = in[i];
+}
+
+
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
     switch (event) {
@@ -141,23 +148,19 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     }
                 }
                 else if(sensoring_handle_table[IDX_CHAR_CO2_T_CFG] == param->write.handle && param->write.len == 2) {
-                    co2_ccc[0] = param->write.value[0];
-                    co2_ccc[1] = param->write.value[1];
+                    copy_char(param->write.value, co2_ccc, 2);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CO2_T_CFG to %d", co2_ccc[1] << 8 | co2_ccc[0]);
                 }
                 else if(sensoring_handle_table[IDX_CHAR_TEMP_T_CFG] == param->write.handle && param->write.len == 2) {
-                    temp_ccc[0] = param->write.value[0];
-                    temp_ccc[1] = param->write.value[1];
+                    copy_char(param->write.value, temp_ccc, 2);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_TEMP_T_CFG to %d", temp_ccc[1] << 8 | temp_ccc[0]);
                 }
                 else if(sensoring_handle_table[IDX_CHAR_HUM_T_CFG] == param->write.handle && param->write.len == 2) {
-                    hum_ccc[0] = param->write.value[0];
-                    hum_ccc[1] = param->write.value[1];
+                    copy_char(param->write.value, hum_ccc, 2);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_HUM_T_CFG to %d", hum_ccc[1] << 8 | hum_ccc[0]);
                 }
                 else if(sensoring_handle_table[IDX_CHAR_CAP_D_CFG] == param->write.handle && param->write.len == 2) {
-                    cap_ccc[0] = param->write.value[0];
-                    cap_ccc[1] = param->write.value[1];
+                    copy_char(param->write.value, cap_ccc, 2);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CAP_D_CFG to %d", cap_ccc[1] << 8 | cap_ccc[0]);
                 }
 

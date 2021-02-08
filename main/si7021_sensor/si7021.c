@@ -43,6 +43,9 @@ void si7021_task(void *arg) {
     float temperature, humidity;
     double mean = 0;
     uint32_t timeT = time(NULL), timeH = time(NULL);
+    uint8_t temp_ccc[2] = {0x05, 0x00};
+    uint8_t hum_ccc[2] = {0x05, 0x00};
+    uint32_t sample_freq_t, sample_freq_h;
 
     init_buffer(&tBuffer, CONFIG_TEMP_WINDOW_SIZE);
     init_buffer(&hBuffer, CONFIG_HUM_WINDOW_SIZE);
@@ -50,7 +53,9 @@ void si7021_task(void *arg) {
     ESP_LOGI(CONFIG_LOG_TAG, "Started si7021 task");
     while (1) {
 
-        if((time(NULL) - timeT) >= SAMPLE_FREQ_T){
+        // GATT var for temperature frequency sampling
+        sample_freq_t = temp_ccc[1] << 8 | temp_ccc[0];
+        if((time(NULL) - timeT) >= sample_freq_t){
             timeT = time(NULL);
 
             for(int i = 0; i < CONFIG_TEMP_N_SAMPLES; i++) {
@@ -69,7 +74,8 @@ void si7021_task(void *arg) {
             mean = 0;
         }
 
-        if((time(NULL) - timeH) >= SAMPLE_FREQ_H){
+        sample_freq_h = hum_ccc[1] << 8 | hum_ccc[0];
+        if((time(NULL) - timeH) >= sample_freq_h){
             timeH = time(NULL);
 
             for(int i = 0; i < CONFIG_HUM_N_SAMPLES; i++) {
@@ -88,7 +94,7 @@ void si7021_task(void *arg) {
             mean = 0;
         }
 
-        vTaskDelay((MIN(SAMPLE_FREQ_T, SAMPLE_FREQ_H) * 0.5)  / portTICK_RATE_MS);
+        vTaskDelay((MIN(sample_freq_t, sample_freq_h) * 0.5)  / portTICK_RATE_MS);
     }
 
     free_buffer(&tBuffer);
