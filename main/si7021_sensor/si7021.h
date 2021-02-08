@@ -22,7 +22,7 @@ static struct CircularBuffer tBuffer;
 static struct CircularBuffer hBuffer;
 
 void si7021_task(void *arg);
-void sendTempCallback(void *arg);
-void sendHumCallback(void *arg);
+void update_temperature_char(void *arg);
+void update_humidity_char(void *arg);
 
 #endif

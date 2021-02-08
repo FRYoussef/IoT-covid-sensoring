@@ -6,7 +6,6 @@
 #include <time.h>
 #include "i2c_controller/i2c_controller.h"
 #include "si7021.h"
-#include "gatt_table/gatt_table.h"
 
 esp_err_t get_temperature(i2c_port_t i2c_num, float *temperature){
     int ret;
@@ -98,7 +97,8 @@ void si7021_task(void *arg) {
 }
 
 
-void sendTempCallback(void *arg) {
+void update_temperature_char(void *arg) {
+    uint8_t *temp = (uint8_t *)arg;
     float mean = 0;
 
     for(int i = 0; i < tBuffer.counter; i++)
@@ -110,12 +110,13 @@ void sendTempCallback(void *arg) {
     float dec = (mean - intpart) * 100; // get just 2 decimal
     uint8_t decpart = (uint8_t)dec;
 
-    temp_char_value[0] = intpart;
-    temp_char_value[1] = decpart;
+    temp[0] = intpart;
+    temp[1] = decpart;
 }
 
 
-void sendHumCallback(void *arg) {
+void update_humidity_char(void *arg) {
+    uint8_t *hum = (uint8_t *)arg;
     float mean = 0;
 
     for(int i = 0; i < hBuffer.counter; i++)
@@ -127,6 +128,6 @@ void sendHumCallback(void *arg) {
     float dec = (mean - intpart) * 100; // get just 2 decimal
     uint8_t decpart = (uint8_t)dec;
 
-    hum_char_value[0] = intpart;
-    hum_char_value[1] = decpart;
+    hum[0] = intpart;
+    hum[1] = decpart;
 }
