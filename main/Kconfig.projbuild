@@ -1,9 +1,78 @@
 menu "ESP32 sensoring configuration"
 
-config LOG_TAG
-    string "Log tag"
-	default "ESP32_SENSORING"
-	help
-		Log tag to show or store app logouts.
+	config LOG_TAG
+		string "Log tag"
+		default "ESP32_SENSORING"
+		help
+			Log tag to show or store app logouts.
 
+	menu "I2C Master"
+		config I2C_MASTER_SCL
+			int "SCL GPIO Num"
+			default 19
+			help
+				GPIO number for I2C Master clock line.
+
+		config I2C_MASTER_SDA
+			int "SDA GPIO Num"
+			default 18
+			help
+				GPIO number for I2C Master data line.
+
+		config I2C_MASTER_PORT_NUM
+			int "Port Number"
+			default 1
+			help
+				Port number for I2C Master device.
+
+		config I2C_MASTER_FREQUENCY
+			int "Master Frequency"
+			default 100000
+			help
+				I2C Speed of Master device.
+	endmenu
+
+	menu "si7021 sensor"
+		config SEND_FREQ_T
+			int "temperature sending frequency"
+			range 1000000 1000000000000
+			default 5000000
+			help
+				microseconds of sending frequency
+
+		config TEMP_N_SAMPLES
+			int "temperature sample number"
+			range 1 10
+			default 2
+			help
+				number of samples for the temperature mean filter
+
+		config TEMP_WINDOW_SIZE
+			int "temperature window size"
+			range 1 10
+			default 5
+			help
+				moving average to send
+
+		config SEND_FREQ_H
+			int "humidity sending frequency"
+			range 1000000 1000000000000
+			default 5000000
+			help
+				microseconds of sending frequency
+
+		config HUM_N_SAMPLES
+			int "humidity sample number"
+			range 1 10
+			default 2
+			help
+				number of samples for the humidity mean filter
+
+		config HUM_WINDOW_SIZE
+			int "humidity window size"
+			range 1 10
+			default 5
+			help
+				moving average to send
+	endmenu
 endmenu

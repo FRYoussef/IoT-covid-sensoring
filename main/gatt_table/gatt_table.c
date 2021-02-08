@@ -4,7 +4,9 @@
  **/
 
 #include "gatt_table.h"
+#include "si7021_sensor/si7021.h"
 
+void function(void *arg) {}
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
@@ -52,7 +54,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 }
 
 
-static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
+void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
     switch (event) {
         case ESP_GATTS_REG_EVT:{
@@ -91,6 +93,8 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 enum GattAttr char_idx = IDX_SVC; // use it as default value
                 uint8_t *val = NULL;
                 int n_elems = 2;
+                void (* foo)(void *);
+                foo = function;
 
                 if (sensoring_handle_table[IDX_CHAR_CO2_ENB] == param->write.handle) {
                     char_cfg = co2_enb;
@@ -101,6 +105,13 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     char_cfg = temp_enb;
                     char_idx = IDX_CHAR_TEMP_VAL;
                     val = (uint8_t *) &temp_char_value;
+                    foo = update_temperature_char;
+                }
+                else if (sensoring_handle_table[IDX_CHAR_HUM_ENB] == param->write.handle) {
+                    char_cfg = hum_enb;
+                    char_idx = IDX_CHAR_HUM_VAL;
+                    val = (uint8_t *) &hum_char_value;
+                    foo = update_humidity_char;
                 }
                 else if (sensoring_handle_table[IDX_CHAR_CAP_ENB] == param->write.handle) {
                     char_cfg = cap_enb;
@@ -114,6 +125,10 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     if (descr_value == 1){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify enable");
                         char_cfg[0] = descr_value;
+
+                        /* Update char value */
+                        foo(val);
+
                         esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id, sensoring_handle_table[char_idx],
                             sizeof(*val)*n_elems, val, false);
                     }
@@ -134,6 +149,11 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     temp_ccc[0] = param->write.value[0];
                     temp_ccc[1] = param->write.value[1];
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_TEMP_T_CFG to %d", temp_ccc[1] << 8 | temp_ccc[0]);
+                }
+                else if(sensoring_handle_table[IDX_CHAR_HUM_T_CFG] == param->write.handle && param->write.len == 2) {
+                    hum_ccc[0] = param->write.value[0];
+                    hum_ccc[1] = param->write.value[1];
+                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_HUM_T_CFG to %d", hum_ccc[1] << 8 | hum_ccc[0]);
                 }
                 else if(sensoring_handle_table[IDX_CHAR_CAP_D_CFG] == param->write.handle && param->write.len == 2) {
                     cap_ccc[0] = param->write.value[0];

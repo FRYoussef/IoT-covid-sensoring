@@ -28,13 +28,18 @@ enum GattAttr{
 
     IDX_CHAR_CO2, // air CO2 characteristic  
     IDX_CHAR_CO2_VAL, // air CO2 value
-    IDX_CHAR_CO2_T_CFG, // Time sensoring configuration in ms
+    IDX_CHAR_CO2_T_CFG, // Time sensoring configuration in s
     IDX_CHAR_CO2_ENB, // CO2 enable/disable
 
     IDX_CHAR_TEMP, // temperature characteristic  
     IDX_CHAR_TEMP_VAL, // temperature value
-    IDX_CHAR_TEMP_T_CFG, // Time sensoring configuration in ms
+    IDX_CHAR_TEMP_T_CFG, // Time sensoring configuration in s
     IDX_CHAR_TEMP_ENB, // temperature enable/disable
+
+    IDX_CHAR_HUM, // humidity characteristic  
+    IDX_CHAR_HUM_VAL, // humidity value
+    IDX_CHAR_HUM_T_CFG, // Time sensoring configuration in s
+    IDX_CHAR_HUM_ENB, // humidity enable/disable
 
     IDX_CHAR_CAP, // capacity characteristic
     IDX_CHAR_CAP_VAL, // capacity value
@@ -124,10 +129,11 @@ static struct gatts_profile_inst sensoring_profile_tab[PROFILE_NUM] = {
 };
 
 /* Service */
-static const uint16_t GATTS_SERVICE_UUID_TEST      = 0x00FF;
+static const uint16_t GATTS_SERVICE_UUID           = 0x00FF;
 static const uint16_t GATTS_CHAR_UUID_CO2          = 0xFF01;
 static const uint16_t GATTS_CHAR_UUID_TEMP         = 0xFF02;
-static const uint16_t GATTS_CHAR_UUID_CAP          = 0xFF03;
+static const uint16_t GATTS_CHAR_UUID_HUM          = 0xFF03;
+static const uint16_t GATTS_CHAR_UUID_CAP          = 0xFF04;
 
 static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
@@ -136,13 +142,16 @@ static const uint8_t char_prop_read                = ESP_GATT_CHAR_PROP_BIT_READ
 static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static uint8_t co2_char_value[2]                   = {0x00, 0x00};
-static uint8_t temp_char_value[2]                  = {0x00, 0x00};
+static uint8_t temp_char_value[2]                  = {0x01, 0x02}; // temp_char_value[0] = int part; temp_char_value[1] decimal part
+static uint8_t hum_char_value[2]                   = {0x00, 0x00};
 static uint8_t cap_char_value[2]                   = {0x00, 0x00};
 static uint8_t co2_ccc[2]                          = {0x00, 0x00};
 static uint8_t temp_ccc[2]                         = {0x00, 0x00};
+static uint8_t hum_ccc[2]                          = {0x00, 0x00};
 static uint8_t cap_ccc[2]                          = {0x00, 0x00};
 static uint8_t co2_enb[1]                          = {0x01};
 static uint8_t temp_enb[1]                         = {0x01};
+static uint8_t hum_enb[1]                          = {0x01};
 static uint8_t cap_enb[1]                          = {0x01};
 
 /* Full Database Description - Used to add attributes into the database */
@@ -151,7 +160,7 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
     // Service Declaration
     [IDX_SVC]        =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid, ESP_GATT_PERM_READ,
-      sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID_TEST), (uint8_t *)&GATTS_SERVICE_UUID_TEST}},
+      sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID), (uint8_t *)&GATTS_SERVICE_UUID}},
 
     /* Characteristic Declaration */
     [IDX_CHAR_CO2]     =
@@ -192,6 +201,26 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
     [IDX_CHAR_TEMP_ENB]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
       sizeof(uint16_t), sizeof(temp_enb), (uint8_t *)temp_enb}},
+
+    /* Characteristic Declaration */
+    [IDX_CHAR_HUM]     =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_HUM_VAL] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_HUM, ESP_GATT_PERM_READ,
+      GATT_CHAR_VAL_LEN_MAX, sizeof(hum_char_value), (uint8_t *)hum_char_value}},
+
+    /* Client Characteristic Configuration Descriptor */
+    [IDX_CHAR_HUM_T_CFG]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      sizeof(uint16_t), sizeof(hum_ccc), (uint8_t *)hum_ccc}},
+
+    /* Client Characteristic Configuration Descriptor */
+    [IDX_CHAR_HUM_ENB]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      sizeof(uint16_t), sizeof(hum_enb), (uint8_t *)hum_enb}},
 
     /* Characteristic Declaration */
     [IDX_CHAR_CAP]     =
