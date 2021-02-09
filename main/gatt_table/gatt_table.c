@@ -4,7 +4,6 @@
  **/
 
 #include "gatt_table.h"
-#include "si7021_sensor/si7021.h"
 
 void function(void *arg) {}
 
@@ -100,6 +99,8 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                 enum GattAttr char_idx = IDX_SVC; // use it as default value
                 uint8_t *val = NULL;
                 int n_elems = 2;
+                QueueHandle_t queue = NULL;
+                int ev_enb;
                 void (* foo)(void *);
                 foo = function;
 
@@ -113,12 +114,16 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     char_idx = IDX_CHAR_TEMP_VAL;
                     val = (uint8_t *) &temp_char_value;
                     foo = update_temperature_char;
+                    queue = si7021_queue;
+                    ev_enb = TEMP_ENABLE;
                 }
                 else if (sensoring_handle_table[IDX_CHAR_HUM_ENB] == param->write.handle) {
                     char_cfg = hum_enb;
                     char_idx = IDX_CHAR_HUM_VAL;
                     val = (uint8_t *) &hum_char_value;
                     foo = update_humidity_char;
+                    queue = si7021_queue;
+                    ev_enb = HUM_ENABLE;
                 }
                 else if (sensoring_handle_table[IDX_CHAR_CAP_ENB] == param->write.handle) {
                     char_cfg = cap_enb;
@@ -131,6 +136,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
 
                     if (descr_value == 1){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify enable");
+                        
+                        if(char_cfg[0] != descr_value)
+                            xQueueSendToFront(queue, (void *) &ev_enb, 100);
+                        
                         char_cfg[0] = descr_value;
 
                         /* Update char value */
@@ -141,6 +150,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     }
                     else if (descr_value == 0){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify disable ");
+                        
+                        if(char_cfg[0] != descr_value)
+                            xQueueSendToFront(queue, (void *) &ev_enb, 100);
+
                         char_cfg[0] = descr_value;
                     }else{
                         ESP_LOGE(CONFIG_LOG_TAG, "unknown descr value");
@@ -153,10 +166,14 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                 }
                 else if(sensoring_handle_table[IDX_CHAR_TEMP_T_CFG] == param->write.handle && param->write.len == 2) {
                     copy_char(param->write.value, temp_ccc, 2);
+                    gatt_ev = TEMP_SAMPLE_FREQ;
+                    xQueueSendToFront(si7021_queue, (void *) &gatt_ev, 100);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_TEMP_T_CFG to %d", temp_ccc[1] << 8 | temp_ccc[0]);
                 }
                 else if(sensoring_handle_table[IDX_CHAR_HUM_T_CFG] == param->write.handle && param->write.len == 2) {
                     copy_char(param->write.value, hum_ccc, 2);
+                    gatt_ev = HUM_SAMPLE_FREQ;
+                    xQueueSendToFront(si7021_queue, (void *) &gatt_ev, 100);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_HUM_T_CFG to %d", hum_ccc[1] << 8 | hum_ccc[0]);
                 }
                 else if(sensoring_handle_table[IDX_CHAR_CAP_D_CFG] == param->write.handle && param->write.len == 2) {
@@ -255,7 +272,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     } while (0);
 }
 
-void configure_gatt_server(void) {
+void configure_gatt_server(QueueHandle_t q1) {
+    si7021_queue = q1;
     esp_err_t ret;
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));

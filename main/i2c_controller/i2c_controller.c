@@ -20,7 +20,7 @@
 esp_err_t i2c_master_read_from(int sensor_addr, int sensor_delay, 
     i2c_port_t i2c_num, uint8_t *data_h, uint8_t *data_l, uint8_t code)
 {
-    int ret = i2c_master_write(sensor_addr, i2c_num, code);
+    esp_err_t ret = i2c_master_write_on(sensor_addr, i2c_num, code);
 
     if (ret != ESP_OK) {
         return ret;
@@ -28,7 +28,7 @@ esp_err_t i2c_master_read_from(int sensor_addr, int sensor_delay,
     vTaskDelay(sensor_delay / portTICK_RATE_MS);
 
     // get response (READ COMMAND)
-    cmd = i2c_cmd_link_create();
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, sensor_addr << 1 | I2C_MASTER_READ, ACK_CHECK_EN);
     i2c_master_read_byte(cmd, data_h, ACK_VAL);
@@ -40,7 +40,7 @@ esp_err_t i2c_master_read_from(int sensor_addr, int sensor_delay,
 }
 
 
-esp_err_t i2c_master_write(int sensor_addr, i2c_port_t i2c_num, uint8_t code)
+esp_err_t i2c_master_write_on(int sensor_addr, i2c_port_t i2c_num, uint8_t code)
 {
     int ret;
     //Send READ command (WRITE OPT)

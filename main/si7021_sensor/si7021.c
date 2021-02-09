@@ -3,7 +3,8 @@
  * Date: February 2nd 2021
  **/
 
-#include <time.h>
+#include "esp_timer.h"
+
 #include "i2c_controller/i2c_controller.h"
 #include "si7021.h"
 
@@ -38,26 +39,45 @@ esp_err_t get_humidity(i2c_port_t i2c_num, float *humidity){
 }
 
 
+int get_time_micros(uint8_t *t) {
+    return 1000000 * (t[1] << 8 | t[0]);
+}
+
+
 void si7021_task(void *arg) {
+    si7021_args_t *params = (si7021_args_t *) arg;
+    si7021_event_t ev = DEFAULT;
     int ret;
     float temperature, humidity;
     double mean = 0;
-    uint32_t timeT = time(NULL), timeH = time(NULL);
-    uint8_t temp_ccc[2] = {0x05, 0x00};
-    uint8_t hum_ccc[2] = {0x05, 0x00};
-    uint32_t sample_freq_t, sample_freq_h;
+    esp_timer_handle_t timer_temp, timer_hum;
+    BaseType_t q_ready;
+    bool temp_enb = true, hum_enb = true;
 
     init_buffer(&tBuffer, CONFIG_TEMP_WINDOW_SIZE);
     init_buffer(&hBuffer, CONFIG_HUM_WINDOW_SIZE);
 
-    ESP_LOGI(CONFIG_LOG_TAG, "Started si7021 task");
+    // timers configuration
+    const esp_timer_create_args_t chrono_args_t = {
+        .callback = &chrono_sample_temp,
+        .name = "timer_sample_temperature",
+        .arg = (void *)&params->event_queue,
+    };
+    esp_timer_create(&chrono_args_t, &timer_temp);
+
+    const esp_timer_create_args_t chrono_args_h = {
+        .callback = &chrono_sample_hum,
+        .name = "timer_sample_humidity",
+        .arg = (void *)&params->event_queue,
+    };
+    esp_timer_create(&chrono_args_h, &timer_hum);
+
+    esp_timer_start_periodic(timer_temp, get_time_micros(params->temp_samp_freq));
+    esp_timer_start_periodic(timer_hum, get_time_micros(params->hum_samp_freq));
+    ESP_LOGI(CONFIG_LOG_TAG, "si7021 task started");
+
     while (1) {
-
-        // GATT var for temperature frequency sampling
-        sample_freq_t = temp_ccc[1] << 8 | temp_ccc[0];
-        if((time(NULL) - timeT) >= sample_freq_t){
-            timeT = time(NULL);
-
+        if(ev == TEMP_SAMPLE && temp_enb){
             for(int i = 0; i < CONFIG_TEMP_N_SAMPLES; i++) {
                 ret = get_temperature(I2C_MASTER_NUM, &temperature);
 
@@ -73,11 +93,7 @@ void si7021_task(void *arg) {
             add_element(&tBuffer, mean);
             mean = 0;
         }
-
-        sample_freq_h = hum_ccc[1] << 8 | hum_ccc[0];
-        if((time(NULL) - timeH) >= sample_freq_h){
-            timeH = time(NULL);
-
+        else if(ev == HUM_SAMPLE && hum_enb){
             for(int i = 0; i < CONFIG_HUM_N_SAMPLES; i++) {
                 ret = get_humidity(I2C_MASTER_NUM, &humidity);
 
@@ -93,8 +109,32 @@ void si7021_task(void *arg) {
             add_element(&hBuffer, mean);
             mean = 0;
         }
-
-        vTaskDelay((MIN(sample_freq_t, sample_freq_h) * 0.5)  / portTICK_RATE_MS);
+        else if (ev == TEMP_ENABLE){
+            temp_enb = !temp_enb;
+            if(temp_enb)
+                ESP_LOGI(CONFIG_LOG_TAG, "Temperature enabled");
+            else
+                ESP_LOGI(CONFIG_LOG_TAG, "Temperature disabled");
+        }
+        else if (ev == HUM_ENABLE){
+            hum_enb = !hum_enb;
+            if(hum_enb)
+                ESP_LOGI(CONFIG_LOG_TAG, "Humidity enabled");
+            else
+                ESP_LOGI(CONFIG_LOG_TAG, "Humidity disabled");
+        }
+        else if (ev == TEMP_SAMPLE_FREQ) {
+            esp_timer_stop(timer_temp);
+            ESP_LOGI(CONFIG_LOG_TAG, "Changed temperature sample to %d s", params->temp_samp_freq[1]<<8 | params->temp_samp_freq[0]);
+            esp_timer_start_periodic(timer_temp, get_time_micros(params->temp_samp_freq));
+        }
+        else if (ev == HUM_SAMPLE_FREQ) {
+            esp_timer_stop(timer_hum);
+            ESP_LOGI(CONFIG_LOG_TAG, "Changed humidity sample to %d s", params->hum_samp_freq[1]<<8 | params->hum_samp_freq[0]);
+            esp_timer_start_periodic(timer_hum, get_time_micros(params->hum_samp_freq));
+        }
+        
+        do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);
     }
 
     free_buffer(&tBuffer);
@@ -136,4 +176,18 @@ void update_humidity_char(void *arg) {
 
     hum[0] = intpart;
     hum[1] = decpart;
+}
+
+
+static void chrono_sample_temp(void *arg) {
+    timer_ev = TEMP_SAMPLE;
+    QueueHandle_t *queue = (QueueHandle_t*) arg;
+    xQueueSendToFront(*queue, (void *) &timer_ev, 100);
+}
+
+
+static void chrono_sample_hum(void *arg) {
+    timer_ev = HUM_SAMPLE;
+    QueueHandle_t *queue = (QueueHandle_t*) arg;
+    xQueueSendToFront(*queue, (void *) &timer_ev, 100);
 }
