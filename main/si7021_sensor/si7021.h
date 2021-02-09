@@ -13,7 +13,7 @@
 #define SI7021_SENSOR_ADDR 0x40   /*!< slave address for SI7021 sensor */
 #define SI7021_READ_TEMP 0xF3    /*!< READ op with no stretching  F3*/
 #define SI7021_READ_HUMIDITY 0xF5
-#define SENSOR_DELAY 30
+#define SI7021_DELAY 30
 
 static struct CircularBuffer tBuffer;
 static struct CircularBuffer hBuffer;

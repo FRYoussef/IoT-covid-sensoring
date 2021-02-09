@@ -11,7 +11,7 @@ esp_err_t get_temperature(i2c_port_t i2c_num, float *temperature){
     int ret;
     uint8_t sensor_data_h, sensor_data_l;
 
-    ret = i2c_master_read_from(SI7021_SENSOR_ADDR, SENSOR_DELAY,
+    ret = i2c_master_read_from(SI7021_SENSOR_ADDR, SI7021_DELAY,
         i2c_num, &sensor_data_h, &sensor_data_l, SI7021_READ_TEMP);
 
     uint16_t bytes;
@@ -26,7 +26,7 @@ esp_err_t get_humidity(i2c_port_t i2c_num, float *humidity){
     int ret;
     uint8_t sensor_data_h, sensor_data_l;
 
-    ret = i2c_master_read_from(SI7021_SENSOR_ADDR, SENSOR_DELAY,
+    ret = i2c_master_read_from(SI7021_SENSOR_ADDR, SI7021_DELAY,
         i2c_num, &sensor_data_h, &sensor_data_l, SI7021_READ_HUMIDITY);
 
     uint16_t bytes;
