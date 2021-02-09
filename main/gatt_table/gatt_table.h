@@ -148,7 +148,7 @@ static const uint8_t char_prop_read                = ESP_GATT_CHAR_PROP_BIT_READ
 static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static uint8_t co2_char_value[2]                   = {0x00, 0x00};
-static uint8_t temp_char_value[2]                  = {0x01, 0x02}; // temp_char_value[0] = int part; temp_char_value[1] decimal part
+static uint8_t temp_char_value[2]                  = {0x00, 0x00}; // temp_char_value[0] = int part; temp_char_value[1] decimal part
 static uint8_t hum_char_value[2]                   = {0x00, 0x00};
 static uint8_t cap_char_value[2]                   = {0x00, 0x00};
 static uint8_t co2_ccc[2]                          = {0x05, 0x00};

@@ -27,7 +27,7 @@
 #define I2C_TIMEOUT_MS 1000
 
 esp_err_t i2c_master_read_from(int sensor_addr, int sensor_delay, 
-    i2c_port_t i2c_num, uint8_t *data_h, uint8_t *data_l, uint8_t code);
+    i2c_port_t i2c_num, uint8_t *buffer, int buffer_n, uint8_t code);
 
 esp_err_t i2c_master_write_on(int sensor_addr, i2c_port_t i2c_num, uint8_t code);
 

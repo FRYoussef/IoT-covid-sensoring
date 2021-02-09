@@ -8,6 +8,7 @@
 #include "gatt_table/gatt_table.h"
 #include "i2c_controller/i2c_controller.h"
 #include "si7021_sensor/si7021.h"
+#include "ccs811_sensor/ccs811.h"
 
 void app_main(void) {
     esp_err_t ret;
@@ -34,6 +35,7 @@ void app_main(void) {
     ESP_LOGI(CONFIG_LOG_TAG, "GATT server well configured");
 
     xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 4, (void*)&si7021_args, uxTaskPriorityGet(NULL), NULL, 1);
+    xTaskCreatePinnedToCore(&ccs811_task, "ccs811_task", 1024 * 2, NULL, uxTaskPriorityGet(NULL), NULL, 1);
 
     while(1) { vTaskDelay(1000); }
 }
