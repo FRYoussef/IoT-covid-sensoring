@@ -11,9 +11,10 @@
 
 #include "circular_buffer/circular_buffer.h"
 
-#define CCS811_SENSOR_ADDR                       0x5A   /*!< slave address for ccs811 sensor */
-#define CCS811_DELAY                             100
+#define CCS811_SENSOR_ADDR                        0x5A   /*!< slave address for ccs811 sensor */
+#define CCS811_DELAY                              100
 
+#define CCS811_REG_STATUS                         0x00
 #define CCS811_REG_MEAS_MODE                      0x01
 #define CCS811_REG_ALG_RESULT_DATA                0x02
 #define CCS811_REG_ENV_DATA                       0x05

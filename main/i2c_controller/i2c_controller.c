@@ -32,9 +32,10 @@ esp_err_t i2c_master_read_from(int sensor_addr, int sensor_delay,
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, sensor_addr << 1 | I2C_MASTER_READ, ACK_CHECK_EN);
     
-    for(int i = 0; i < buffer_n; i++)
+    for(int i = 0; i < buffer_n-1; i++)
         i2c_master_read_byte(cmd, &buffer[i], ACK_VAL);
-    
+    i2c_master_read_byte(cmd, &buffer[buffer_n-1], NACK_VAL);
+
     i2c_master_stop(cmd);
     ret = i2c_master_cmd_begin(i2c_num, cmd, I2C_TIMEOUT_MS / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);

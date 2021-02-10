@@ -42,6 +42,21 @@ void init_ccs811(int thresh, int interrupt, eDRIVE_MODE_t mode) {
     measurement = (thresh << 2) | (interrupt << 3) | (mode << 4);
     i2c_master_write_on(CCS811_SENSOR_ADDR, I2C_MASTER_NUM, CCS811_REG_MEAS_MODE);
     i2c_master_write_on(CCS811_SENSOR_ADDR, I2C_MASTER_NUM, measurement);
+
+    // check errors
+    uint8_t buffer[1];
+    i2c_master_read_from(CCS811_SENSOR_ADDR, CCS811_DELAY,
+        I2C_MASTER_NUM, buffer, 1, CCS811_REG_STATUS);
+    
+    if((buffer[0] & 0x1) == 1)
+        ESP_LOGE(CONFIG_LOG_TAG, "There is an error in the i2c or sensor.");
+
+
+    // i2c_master_write_on(CCS811_SENSOR_ADDR, I2C_MASTER_NUM, CCS811_REG_ALG_RESULT_DATA);
+    // vTaskDelay(CCS811_DELAY / portTICK_RATE_MS);
+    // i2c_master_read_from(CCS811_SENSOR_ADDR, CCS811_DELAY,
+    //     I2C_MASTER_NUM, buffer, 1, CCS811_REG_STATUS);
+    // ESP_LOGI(CONFIG_LOG_TAG, "STATUS = %d", buffer[0]);
 }
 
 
@@ -62,7 +77,7 @@ void ccs811_task(void *arg) {
             if (ret == ESP_ERR_TIMEOUT)
                 ESP_LOGE(CONFIG_LOG_TAG, "I2C Timeout for co2 sensor");
             else if (ret == ESP_OK)
-                mean += co2;
+            mean += co2;
             else
                 ESP_LOGW(CONFIG_LOG_TAG, "%s: No ack, sensor not connected...skip...", esp_err_to_name(ret));
         }
@@ -71,7 +86,7 @@ void ccs811_task(void *arg) {
         add_element(&co2_buffer, mean);
         ESP_LOGI(CONFIG_LOG_TAG, "co2 = %f ppm", mean);
         mean = 0;
-        vTaskDelay(5);
+        vTaskDelay(1000);
     }
 
     free_buffer(&co2_buffer);
@@ -81,11 +96,12 @@ void ccs811_task(void *arg) {
 
 esp_err_t get_co2(int i2c_num, int *co2){
     int ret;
-    uint8_t buffer[8];
+    uint8_t buffer[2]; // we just need first 2 bytes
 
     ret = i2c_master_read_from(CCS811_SENSOR_ADDR, CCS811_DELAY,
-        i2c_num, buffer, 8, CCS811_REG_ALG_RESULT_DATA);
+        i2c_num, buffer, 2, CCS811_REG_ALG_RESULT_DATA);
 
+    ESP_LOGE(CONFIG_LOG_TAG, "%d %d", buffer[0], buffer[1]);
     *co2 = (((int)buffer[0] << 8) | (int)buffer[1]);
     return ret;
 }
