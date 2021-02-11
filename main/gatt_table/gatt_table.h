@@ -12,6 +12,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
+#include "freertos/queue.h"
 #include "esp_system.h"
 #include "esp_log.h"
 #include "esp_bt.h"
@@ -21,6 +22,8 @@
 #include "esp_bt_main.h"
 #include "esp_gatt_common_api.h"
 
+#include "si7021_sensor/si7021.h"
+#include "ccs811_sensor/ccs811.h"
 
 /* Attributes State Machine */
 enum GattAttr{
@@ -128,6 +131,12 @@ static struct gatts_profile_inst sensoring_profile_tab[PROFILE_NUM] = {
     },
 };
 
+/* queue events */
+static QueueHandle_t si7021_queue;
+static si7021_event_t si7021_ev;
+static QueueHandle_t ccs811_queue;
+static ccs811_event_t ccs811_ev;
+
 /* Service */
 static const uint16_t GATTS_SERVICE_UUID           = 0x00FF;
 static const uint16_t GATTS_CHAR_UUID_CO2          = 0xFF01;
@@ -142,13 +151,13 @@ static const uint8_t char_prop_read                = ESP_GATT_CHAR_PROP_BIT_READ
 static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static uint8_t co2_char_value[2]                   = {0x00, 0x00};
-static uint8_t temp_char_value[2]                  = {0x01, 0x02}; // temp_char_value[0] = int part; temp_char_value[1] decimal part
+static uint8_t temp_char_value[2]                  = {0x00, 0x00}; // temp_char_value[0] = int part; temp_char_value[1] decimal part
 static uint8_t hum_char_value[2]                   = {0x00, 0x00};
 static uint8_t cap_char_value[2]                   = {0x00, 0x00};
-static uint8_t co2_ccc[2]                          = {0x00, 0x00};
-static uint8_t temp_ccc[2]                         = {0x00, 0x00};
-static uint8_t hum_ccc[2]                          = {0x00, 0x00};
-static uint8_t cap_ccc[2]                          = {0x00, 0x00};
+static uint8_t co2_ccc[2]                          = {0x05, 0x00};
+static uint8_t temp_ccc[2]                         = {0x05, 0x00};
+static uint8_t hum_ccc[2]                          = {0x05, 0x00};
+static uint8_t cap_ccc[2]                          = {0x05, 0x00};
 static uint8_t co2_enb[1]                          = {0x01};
 static uint8_t temp_enb[1]                         = {0x01};
 static uint8_t hum_enb[1]                          = {0x01};
@@ -243,6 +252,6 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
       sizeof(uint16_t), sizeof(cap_enb), (uint8_t *)cap_enb}},
 };
 
-void configure_gatt_server(void);
+void configure_gatt_server(QueueHandle_t q1, QueueHandle_t q2);
 
 #endif

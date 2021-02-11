@@ -3,34 +3,52 @@
  * Date: February 2nd 2021
  **/
 
-#include <time.h>
+#include "esp_timer.h"
+
 #include "i2c_controller/i2c_controller.h"
-#include "si7021.h"
+#include "si7021_sensor/si7021.h"
+#include "common.h"
 
-esp_err_t get_temperature(i2c_port_t i2c_num, float *temperature){
+esp_err_t get_temperature(i2c_port_t i2c_num, float *temperature, SemaphoreHandle_t i2c_sem){
     int ret;
-    uint8_t sensor_data_h, sensor_data_l;
+    uint8_t buffer[2];
+    uint8_t code[1] = {SI7021_READ_TEMP};
+    BaseType_t q_ready;
 
-    ret = i2c_master_read_from(SI7021_SENSOR_ADDR, SENSOR_DELAY,
-        i2c_num, &sensor_data_h, &sensor_data_l, SI7021_READ_TEMP);
+    // get i2c
+    do { q_ready = xSemaphoreTake(i2c_sem, 1000); } while(!q_ready);
+    
+    ret = i2c_master_write_read_from(SI7021_SENSOR_ADDR, SI7021_DELAY,
+        i2c_num, buffer, 2, code, 1);
+
+    // release i2c
+    xSemaphoreGive(i2c_sem);
 
     uint16_t bytes;
-    bytes = (sensor_data_h << 8 | sensor_data_l);
+    bytes = (buffer[0] << 8 | buffer[1]);
 
     *temperature = ( (175.72 * bytes) / 65536.0 ) - 46.85;
 
     return ret;
 }
 
-esp_err_t get_humidity(i2c_port_t i2c_num, float *humidity){
+esp_err_t get_humidity(i2c_port_t i2c_num, float *humidity, SemaphoreHandle_t i2c_sem){
     int ret;
-    uint8_t sensor_data_h, sensor_data_l;
+    uint8_t buffer[2];
+    uint8_t code[1] = {SI7021_READ_HUMIDITY};
+    BaseType_t q_ready;
 
-    ret = i2c_master_read_from(SI7021_SENSOR_ADDR, SENSOR_DELAY,
-        i2c_num, &sensor_data_h, &sensor_data_l, SI7021_READ_HUMIDITY);
+    // get i2c
+    do { q_ready = xSemaphoreTake(i2c_sem, 1000); } while(!q_ready);
+
+    ret = i2c_master_write_read_from(SI7021_SENSOR_ADDR, SI7021_DELAY,
+        i2c_num, buffer, 2, code, 1);
+
+    // release i2c
+    xSemaphoreGive(i2c_sem);
 
     uint16_t bytes;
-    bytes = (sensor_data_h << 8 | sensor_data_l);
+    bytes = (buffer[0] << 8 | buffer[1]);
 
     *humidity = MIN(100.0, bytes * 125.0 / 65536.0 - 6.0);
 
@@ -39,22 +57,41 @@ esp_err_t get_humidity(i2c_port_t i2c_num, float *humidity){
 
 
 void si7021_task(void *arg) {
+    si7021_args_t *params = (si7021_args_t *) arg;
+    si7021_event_t ev = SI7021_DEFAULT;
     int ret;
     float temperature, humidity;
     double mean = 0;
-    uint32_t timeT = time(NULL), timeH = time(NULL);
+    esp_timer_handle_t timer_temp, timer_hum;
+    BaseType_t q_ready;
+    bool temp_enb = true, hum_enb = true;
 
     init_buffer(&tBuffer, CONFIG_TEMP_WINDOW_SIZE);
     init_buffer(&hBuffer, CONFIG_HUM_WINDOW_SIZE);
 
-    ESP_LOGI(CONFIG_LOG_TAG, "Started si7021 task");
+    // timers configuration
+    const esp_timer_create_args_t chrono_args_t = {
+        .callback = &chrono_sample_temp,
+        .name = "timer_sample_temperature",
+        .arg = (void *)&params->event_queue,
+    };
+    esp_timer_create(&chrono_args_t, &timer_temp);
+
+    const esp_timer_create_args_t chrono_args_h = {
+        .callback = &chrono_sample_hum,
+        .name = "timer_sample_humidity",
+        .arg = (void *)&params->event_queue,
+    };
+    esp_timer_create(&chrono_args_h, &timer_hum);
+
+    esp_timer_start_periodic(timer_temp, get_time_micros(params->temp_samp_freq));
+    esp_timer_start_periodic(timer_hum, get_time_micros(params->hum_samp_freq));
+    ESP_LOGI(CONFIG_LOG_TAG, "si7021 task started");
+
     while (1) {
-
-        if((time(NULL) - timeT) >= SAMPLE_FREQ_T){
-            timeT = time(NULL);
-
+        if(ev == TEMP_SAMPLE && temp_enb){
             for(int i = 0; i < CONFIG_TEMP_N_SAMPLES; i++) {
-                ret = get_temperature(I2C_MASTER_NUM, &temperature);
+                ret = get_temperature(I2C_MASTER_NUM, &temperature, params->i2c_sem);
 
                 if (ret == ESP_ERR_TIMEOUT)
                     ESP_LOGE(CONFIG_LOG_TAG, "I2C Timeout for temperature sensor");
@@ -68,12 +105,9 @@ void si7021_task(void *arg) {
             add_element(&tBuffer, mean);
             mean = 0;
         }
-
-        if((time(NULL) - timeH) >= SAMPLE_FREQ_H){
-            timeH = time(NULL);
-
+        else if(ev == HUM_SAMPLE && hum_enb){
             for(int i = 0; i < CONFIG_HUM_N_SAMPLES; i++) {
-                ret = get_humidity(I2C_MASTER_NUM, &humidity);
+                ret = get_humidity(I2C_MASTER_NUM, &humidity, params->i2c_sem);
 
                 if (ret == ESP_ERR_TIMEOUT)
                     ESP_LOGE(CONFIG_LOG_TAG, "I2C Timeout for humidity measure");
@@ -87,8 +121,32 @@ void si7021_task(void *arg) {
             add_element(&hBuffer, mean);
             mean = 0;
         }
-
-        vTaskDelay((MIN(SAMPLE_FREQ_T, SAMPLE_FREQ_H) * 0.5)  / portTICK_RATE_MS);
+        else if (ev == TEMP_ENABLE){
+            temp_enb = !temp_enb;
+            if(temp_enb)
+                ESP_LOGI(CONFIG_LOG_TAG, "Temperature enabled");
+            else
+                ESP_LOGI(CONFIG_LOG_TAG, "Temperature disabled");
+        }
+        else if (ev == HUM_ENABLE){
+            hum_enb = !hum_enb;
+            if(hum_enb)
+                ESP_LOGI(CONFIG_LOG_TAG, "Humidity enabled");
+            else
+                ESP_LOGI(CONFIG_LOG_TAG, "Humidity disabled");
+        }
+        else if (ev == TEMP_SAMPLE_FREQ) {
+            esp_timer_stop(timer_temp);
+            ESP_LOGI(CONFIG_LOG_TAG, "Changed temperature sample to %d s", params->temp_samp_freq[1]<<8 | params->temp_samp_freq[0]);
+            esp_timer_start_periodic(timer_temp, get_time_micros(params->temp_samp_freq));
+        }
+        else if (ev == HUM_SAMPLE_FREQ) {
+            esp_timer_stop(timer_hum);
+            ESP_LOGI(CONFIG_LOG_TAG, "Changed humidity sample to %d s", params->hum_samp_freq[1]<<8 | params->hum_samp_freq[0]);
+            esp_timer_start_periodic(timer_hum, get_time_micros(params->hum_samp_freq));
+        }
+        
+        do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);
     }
 
     free_buffer(&tBuffer);
@@ -130,4 +188,18 @@ void update_humidity_char(void *arg) {
 
     hum[0] = intpart;
     hum[1] = decpart;
+}
+
+
+static void chrono_sample_temp(void *arg) {
+    si7021_ev = TEMP_SAMPLE;
+    QueueHandle_t *queue = (QueueHandle_t*) arg;
+    xQueueSendToFront(*queue, (void *) &si7021_ev, 100);
+}
+
+
+static void chrono_sample_hum(void *arg) {
+    si7021_ev = HUM_SAMPLE;
+    QueueHandle_t *queue = (QueueHandle_t*) arg;
+    xQueueSendToFront(*queue, (void *) &si7021_ev, 100);
 }

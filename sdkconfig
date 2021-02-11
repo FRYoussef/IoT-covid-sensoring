@@ -144,6 +144,14 @@ CONFIG_SEND_FREQ_H=5000000
 CONFIG_HUM_N_SAMPLES=2
 CONFIG_HUM_WINDOW_SIZE=5
 # end of si7021 sensor
+
+#
+# ccs811 sensor
+#
+CONFIG_SEND_FREQ_CO2=5000000
+CONFIG_CO2_N_SAMPLES=2
+CONFIG_CO2_WINDOW_SIZE=5
+# end of ccs811 sensor
 # end of ESP32 sensoring configuration
 
 #

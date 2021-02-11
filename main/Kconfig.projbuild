@@ -75,4 +75,26 @@ menu "ESP32 sensoring configuration"
 			help
 				moving average to send
 	endmenu
+	menu "ccs811 sensor"
+		config SEND_FREQ_CO2
+			int "co2 sending frequency"
+			range 1000000 1000000000000
+			default 5000000
+			help
+				microseconds of sending frequency
+
+		config CO2_N_SAMPLES
+			int "co2 sample number"
+			range 1 10
+			default 2
+			help
+				number of samples for the co2 mean filter
+
+		config CO2_WINDOW_SIZE
+			int "co2 window size"
+			range 1 10
+			default 5
+			help
+				moving average to send
+	endmenu
 endmenu
