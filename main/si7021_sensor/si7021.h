@@ -8,6 +8,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 
 #include "circular_buffer/circular_buffer.h"
 
@@ -20,7 +21,7 @@
 
 typedef enum
 {
-    DEFAULT,
+    SI7021_DEFAULT,
     TEMP_SAMPLE,
     TEMP_SAMPLE_FREQ,
     TEMP_ENABLE,
@@ -34,11 +35,12 @@ typedef struct
     uint8_t *temp_samp_freq;
     uint8_t *hum_samp_freq;
     QueueHandle_t event_queue;
+    SemaphoreHandle_t i2c_sem;
 } si7021_args_t;
 
 static struct CircularBuffer tBuffer;
 static struct CircularBuffer hBuffer;
-static si7021_event_t timer_ev;
+static si7021_event_t si7021_ev;
 
 void si7021_task(void *arg);
 void update_temperature_char(void *arg);

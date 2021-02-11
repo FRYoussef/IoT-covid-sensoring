@@ -23,6 +23,7 @@
 #include "esp_gatt_common_api.h"
 
 #include "si7021_sensor/si7021.h"
+#include "ccs811_sensor/ccs811.h"
 
 /* Attributes State Machine */
 enum GattAttr{
@@ -132,7 +133,9 @@ static struct gatts_profile_inst sensoring_profile_tab[PROFILE_NUM] = {
 
 /* queue events */
 static QueueHandle_t si7021_queue;
-static si7021_event_t gatt_ev;
+static si7021_event_t si7021_ev;
+static QueueHandle_t ccs811_queue;
+static ccs811_event_t ccs811_ev;
 
 /* Service */
 static const uint16_t GATTS_SERVICE_UUID           = 0x00FF;
@@ -249,6 +252,6 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
       sizeof(uint16_t), sizeof(cap_enb), (uint8_t *)cap_enb}},
 };
 
-void configure_gatt_server(QueueHandle_t q1);
+void configure_gatt_server(QueueHandle_t q1, QueueHandle_t q2);
 
 #endif

@@ -17,40 +17,62 @@
  * | start | slave_addr + rd_bit + ack | read 1 byte + ack  | read 1 byte + nack | stop |
  * --------|---------------------------|--------------------|--------------------|------|
  */
-esp_err_t i2c_master_read_from(int sensor_addr, int sensor_delay, 
-    i2c_port_t i2c_num, uint8_t *buffer, int buffer_n, uint8_t code)
+esp_err_t i2c_master_write_read_from(uint8_t sensor_addr, int sensor_delay, 
+    i2c_port_t i2c_num, uint8_t *buffer, int buffer_n, uint8_t *code, int n_code)
 {
-    esp_err_t ret = i2c_master_write_on(sensor_addr, i2c_num, code);
+    esp_err_t ret = i2c_master_write_on(sensor_addr, i2c_num, code, n_code);
 
     if (ret != ESP_OK) {
         return ret;
     }
     vTaskDelay(sensor_delay / portTICK_RATE_MS);
 
-    // get response (READ COMMAND)
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, sensor_addr << 1 | I2C_MASTER_READ, ACK_CHECK_EN);
-    
-    for(int i = 0; i < buffer_n-1; i++)
-        i2c_master_read_byte(cmd, &buffer[i], ACK_VAL);
-    i2c_master_read_byte(cmd, &buffer[buffer_n-1], NACK_VAL);
+    return i2c_master_read_from(sensor_addr, i2c_num, buffer, buffer_n);
+}
 
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(i2c_num, cmd, I2C_TIMEOUT_MS / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
+    // // read
+    // cmd = i2c_cmd_link_create();
+    // i2c_master_start(cmd);
+    // i2c_master_write_byte(cmd, CCS811_SENSOR_ADDR << 1 | I2C_MASTER_READ, ACK_CHECK_EN);
+    // i2c_master_read_byte(cmd, &buffer, NACK_VAL);
+    // i2c_master_stop(cmd);
+    // i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_TIMEOUT_MS / portTICK_RATE_MS);
+    // i2c_cmd_link_delete(cmd);
+esp_err_t i2c_master_read_from(uint8_t sensor_addr, i2c_port_t i2c_num, uint8_t *buffer, int buffer_n)
+{
+    int i = 0;
+    esp_err_t ret = ESP_OK;
+    i2c_cmd_handle_t cmd;
+    
+    for(; i < buffer_n; i++){
+        cmd = i2c_cmd_link_create();
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, sensor_addr << 1 | I2C_MASTER_READ, ACK_CHECK_EN);
+        i2c_master_read_byte(cmd, &buffer[i], NACK_VAL);
+        i2c_master_stop(cmd);
+        ret = i2c_master_cmd_begin(i2c_num, cmd, I2C_TIMEOUT_MS / portTICK_RATE_MS);
+        i2c_cmd_link_delete(cmd);
+    }
+
     return ret;
 }
 
+    // // write
+    // i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    // i2c_master_start(cmd);
+    // i2c_master_write_byte(cmd, CCS811_SENSOR_ADDR << 1 | I2C_MASTER_WRITE, ACK_CHECK_EN);
+    // i2c_master_write_byte(cmd, CCS811_REG_HW_ID, ACK_CHECK_EN);
+    // i2c_master_stop(cmd);
+    // i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, I2C_TIMEOUT_MS / portTICK_RATE_MS);
+    // i2c_cmd_link_delete(cmd);
 
-esp_err_t i2c_master_write_on(int sensor_addr, i2c_port_t i2c_num, uint8_t code)
+esp_err_t i2c_master_write_on(uint8_t sensor_addr, i2c_port_t i2c_num, uint8_t *code, int n_code)
 {
     int ret;
-    //Send READ command (WRITE OPT)
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd); 
+    i2c_master_start(cmd);
     i2c_master_write_byte(cmd, sensor_addr << 1 | I2C_MASTER_WRITE, ACK_CHECK_EN);
-    i2c_master_write_byte(cmd, code, ACK_CHECK_EN);
+    i2c_master_write(cmd, code, n_code, ACK_CHECK_EN);
     i2c_master_stop(cmd);
     ret = i2c_master_cmd_begin(i2c_num, cmd, I2C_TIMEOUT_MS / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);

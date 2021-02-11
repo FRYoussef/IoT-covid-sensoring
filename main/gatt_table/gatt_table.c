@@ -108,6 +108,9 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     char_cfg = co2_enb;
                     char_idx = IDX_CHAR_CO2_VAL;
                     val = (uint8_t *) &co2_char_value;
+                    foo = update_co2_char;
+                    queue = ccs811_queue;
+                    ev_enb = CO2_ENABLE;
                 } 
                 else if (sensoring_handle_table[IDX_CHAR_TEMP_ENB] == param->write.handle) {
                     char_cfg = temp_enb;
@@ -162,18 +165,20 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                 }
                 else if(sensoring_handle_table[IDX_CHAR_CO2_T_CFG] == param->write.handle && param->write.len == 2) {
                     copy_char(param->write.value, co2_ccc, 2);
+                    ccs811_ev = CO2_SAMPLE_FREQ;
+                    xQueueSendToFront(ccs811_queue, (void *) &ccs811_ev, 100);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CO2_T_CFG to %d", co2_ccc[1] << 8 | co2_ccc[0]);
                 }
                 else if(sensoring_handle_table[IDX_CHAR_TEMP_T_CFG] == param->write.handle && param->write.len == 2) {
                     copy_char(param->write.value, temp_ccc, 2);
-                    gatt_ev = TEMP_SAMPLE_FREQ;
-                    xQueueSendToFront(si7021_queue, (void *) &gatt_ev, 100);
+                    si7021_ev = TEMP_SAMPLE_FREQ;
+                    xQueueSendToFront(si7021_queue, (void *) &si7021_ev, 100);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_TEMP_T_CFG to %d", temp_ccc[1] << 8 | temp_ccc[0]);
                 }
                 else if(sensoring_handle_table[IDX_CHAR_HUM_T_CFG] == param->write.handle && param->write.len == 2) {
                     copy_char(param->write.value, hum_ccc, 2);
-                    gatt_ev = HUM_SAMPLE_FREQ;
-                    xQueueSendToFront(si7021_queue, (void *) &gatt_ev, 100);
+                    si7021_ev = HUM_SAMPLE_FREQ;
+                    xQueueSendToFront(si7021_queue, (void *) &si7021_ev, 100);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_HUM_T_CFG to %d", hum_ccc[1] << 8 | hum_ccc[0]);
                 }
                 else if(sensoring_handle_table[IDX_CHAR_CAP_D_CFG] == param->write.handle && param->write.len == 2) {
@@ -226,7 +231,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                         doesn't equal to SEN_IDX_NB(%d)", param->add_attr_tab.num_handle, SEN_IDX_NB);
             }
             else {
-                ESP_LOGI(CONFIG_LOG_TAG, "create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
+                ESP_LOGI(CONFIG_LOG_TAG, "create attribute table successfully, the number handle = %d",param->add_attr_tab.num_handle);
                 memcpy(sensoring_handle_table, param->add_attr_tab.handles, sizeof(sensoring_handle_table));
                 esp_ble_gatts_start_service(sensoring_handle_table[IDX_SVC]);
             }
@@ -272,8 +277,9 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     } while (0);
 }
 
-void configure_gatt_server(QueueHandle_t q1) {
+void configure_gatt_server(QueueHandle_t q1, QueueHandle_t q2) {
     si7021_queue = q1;
+    ccs811_queue = q2;
     esp_err_t ret;
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
