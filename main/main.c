@@ -3,13 +3,23 @@
  * Date: January 31th 2021
  **/
 
-#include "nvs_flash.h"
-
 #include "common.h"
-#include "gatt_table/gatt_table.h"
-#include "i2c_controller/i2c_controller.h"
-#include "si7021_sensor/si7021.h"
-#include "ccs811_sensor/ccs811.h"
+
+
+void go_low_energy_mode(uint64_t micros){
+#ifdef CONFIG_DEEP_SLEEP
+    ESP_LOGI(CONFIG_LOG_TAG, "Going to deep sleep mode.");
+    esp_sleep_enable_timer_wakeup(micros);
+    esp_deep_sleep_start();
+#endif
+}
+
+uint64_t get_seconds_among_hours(uint8_t start, uint8_t end){
+    if(end < start)
+        end += 24;
+
+    return (uint64_t)((end - start) * 3600);
+}
 
 
 uint64_t get_time_micros(uint32_t t) {
@@ -17,18 +27,96 @@ uint64_t get_time_micros(uint32_t t) {
 }
 
 
-void app_main(void) {
-    esp_err_t ret;
+void print_wakeup_cause(esp_sleep_wakeup_cause_t cause){
+    switch (cause) {
+    case ESP_SLEEP_WAKEUP_TIMER:
+        ESP_LOGI(CONFIG_LOG_TAG, "Restarted from deep sleep.");
+        break;
+    default:
+        break;
+    }
+}
 
-    ESP_ERROR_CHECK(i2c_master_init());
+
+static void initialize_sntp(void) {
+    ESP_LOGI(CONFIG_LOG_TAG, "Initializing SNTP");
+    sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    sntp_setservername(0, "pool.ntp.org");
+    sntp_init();
+}
+
+
+bool sntp_adjust_time(void) {
+    if(wifi_controller_start())
+        return false;
+
+    initialize_sntp();
+
+    int retry = 0;
+    while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && ++retry < SNTP_TRIES) {
+        ESP_LOGI(CONFIG_LOG_TAG, "Waiting for system time to be set... (%d/%d)", retry, SNTP_TRIES);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+    wifi_controller_stop();
+
+    if(retry > SNTP_TRIES) {
+        ESP_LOGE(CONFIG_LOG_TAG, "SNTP not configured.");
+        return false;
+    }
+    else {
+        ESP_LOGI(CONFIG_LOG_TAG, "SNTP well configured.");
+        return true;
+    }
+}
+
+
+void app_main(void) {
+    uint64_t deep_micros;
+    char strftime_buf[64];
+    time_t now;
+    struct tm timeinfo;
+
+    // power management configuration
+    esp_pm_config_esp32_t pm_config = {
+        .max_freq_mhz = CONFIG_MAX_CPU_FREQ_MHZ,
+        .min_freq_mhz = CONFIG_MIN_CPU_FREQ_MHZ,
+        .light_sleep_enable = true };
+    esp_pm_configure(&pm_config);
 
     /* Initialize NVS. */
+    esp_err_t ret;
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+
+    uint32_t main_sleep;
+#ifdef CONFIG_DEEP_SLEEP
+    print_wakeup_cause(esp_sleep_get_wakeup_cause());
+
+    // set time with sntp
+    if(sntp_adjust_time()) {
+        time(&now);
+        setenv("TZ", "UTC", 1);
+        tzset();
+        localtime_r(&now, &timeinfo);
+        strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+        ESP_LOGI(CONFIG_LOG_TAG, "The current date/time in Madrid is: %s", strftime_buf);
+        main_sleep = get_seconds_among_hours(timeinfo.tm_hour, CONFIG_DEEP_SLEEP_START);
+        main_sleep -= (timeinfo.tm_min * 60) + timeinfo.tm_sec;
+        ESP_LOGI(CONFIG_LOG_TAG, "Deep mode will be launched in %f h", (float)(main_sleep/3600));
+    }
+    else {
+        main_sleep = 8;
+        ESP_LOGW(CONFIG_LOG_TAG, "Cannot connect with sntp server");
+        ESP_LOGI(CONFIG_LOG_TAG, "Deep mode will be launched in %d h", main_sleep);
+        main_sleep = get_seconds_among_hours(0, main_sleep);
+    }
+#endif
+
+    ESP_ERROR_CHECK(i2c_master_init());
 
     SemaphoreHandle_t i2c_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(i2c_sem);
@@ -60,12 +148,20 @@ void app_main(void) {
         .event_queue = ccs811_queue,
     };
 
-    ESP_LOGI(CONFIG_LOG_TAG, "Configuring GATT server");
+    // Configuring GATT server
     configure_gatt_server(&si7021_control, &ccs811_control);
-    ESP_LOGI(CONFIG_LOG_TAG, "GATT server well configured");
 
-    xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 4, (void*)&si7021_args, uxTaskPriorityGet(NULL), NULL, 1);
+    xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 3, (void*)&si7021_args, uxTaskPriorityGet(NULL), NULL, 1);
     xTaskCreatePinnedToCore(&ccs811_task, "ccs811_task", 1024 * 2, (void*)&ccs811_args, uxTaskPriorityGet(NULL), NULL, 0);
 
-    while(1) { vTaskDelay(1000); }
+    while(1) { 
+        vTaskDelay(pdMS_TO_TICKS(main_sleep*1000));
+#ifdef CONFIG_DEEP_SLEEP
+        time(&now);
+        localtime_r(&now, &timeinfo);
+        deep_micros = get_seconds_among_hours(timeinfo.tm_hour, CONFIG_DEEP_SLEEP_STOP);
+        deep_micros -= (timeinfo.tm_min * 60) + timeinfo.tm_sec;
+        go_low_energy_mode(get_time_micros(deep_micros));
+#endif
+    }
 }

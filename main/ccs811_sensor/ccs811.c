@@ -26,8 +26,12 @@ void set_environment_vars(float temperature, float humidity) {
 }
 
 
-int init_ccs811(int thresh, int interrupt, eDRIVE_MODE_t mode) {
+int init_ccs811(int thresh, int interrupt, eDRIVE_MODE_t mode, SemaphoreHandle_t i2c_sem) {
     uint8_t code[2];
+    BaseType_t q_ready;
+
+    // get i2c
+    do { q_ready = xSemaphoreTake(i2c_sem, 1000); } while(!q_ready);
 
     // check sensor availability
     uint8_t id;
@@ -63,8 +67,17 @@ int init_ccs811(int thresh, int interrupt, eDRIVE_MODE_t mode) {
     
     if((buffer & 0x1) == 1) {
         ESP_LOGE(CONFIG_LOG_TAG, "There is an error in the i2c or CCS811 sensor.");
+        ESP_LOGE(CONFIG_LOG_TAG, "CCS811 status register = %d", buffer);
+
+        code[0] = CCS811_REG_ERROR_ID;
+        i2c_master_write_on(CCS811_SENSOR_ADDR, I2C_MASTER_NUM, code, 1);
+        i2c_master_read_from(CCS811_SENSOR_ADDR, I2C_MASTER_NUM, &buffer, 1);
+        ESP_LOGE(CONFIG_LOG_TAG, "CCS811 error register = %d", buffer);
         return 1;
     }
+
+    // release i2c
+    xSemaphoreGive(i2c_sem);
     return 0;
 }
 
@@ -96,7 +109,7 @@ void ccs811_task(void *arg) {
     
     init_buffer(&co2_buffer, CONFIG_CO2_WINDOW_SIZE);
 
-    if(init_ccs811(0, 0, eMode4)) {
+    if(init_ccs811(0, 0, eMode4, params->i2c_sem)) {
         start = false;
         ESP_LOGE(CONFIG_LOG_TAG, "ccs811 task not started");
     }
@@ -143,7 +156,15 @@ void ccs811_task(void *arg) {
             else {
                 float temp = get_temp_moving_average();
                 float hum = get_hum_moving_average();
+                BaseType_t q_ready;
+
+                // get i2c
+                do { q_ready = xSemaphoreTake(params->i2c_sem, 1000); } while(!q_ready);
+
                 set_environment_vars(temp, hum);
+                // release i2c
+                xSemaphoreGive(params->i2c_sem);
+
                 ESP_LOGI(CONFIG_LOG_TAG, "Updated environment variables in sensor ccs811");
                 esp_timer_start_once(timer_env_vars, get_time_micros(CONFIG_CCS811_ENV_VARS_T));
             }
