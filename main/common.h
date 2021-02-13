@@ -12,6 +12,8 @@
 #include "esp_sleep.h"
 #include "esp_pm.h"
 #include "esp_sntp.h"
+#include "esp_vfs.h"
+#include "esp_vfs_fat.h"
 
 #include "gatt_table/gatt_table.h"
 #include "i2c_controller/i2c_controller.h"
@@ -26,5 +28,7 @@ void go_low_energy_mode();
 uint64_t get_seconds_among_hours(uint8_t start, uint8_t end);
 static void initialize_sntp(void);
 bool sntp_adjust_time(void);
+void configure_vfs(void);
+int log_printf(const char *fmt, va_list args);
 
 #endif

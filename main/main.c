@@ -5,6 +5,10 @@
 
 #include "common.h"
 
+// Mount path for the partition
+static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
+const char *vfs_path = "/spiflash";
+
 
 void go_low_energy_mode(uint64_t micros){
 #ifdef CONFIG_DEEP_SLEEP
@@ -70,6 +74,34 @@ bool sntp_adjust_time(void) {
 }
 
 
+int log_printf(const char *fmt, va_list args) {
+    int result;
+    FILE *f = fopen("/spiflash/log.txt", "a");
+
+    result = vfprintf(f, fmt, args);
+
+    fclose(f);
+    return result;
+}
+
+
+void configure_vfs(void) {
+    const esp_vfs_fat_mount_config_t mount_config = {
+            .max_files = 2,
+            .format_if_mount_failed = false,
+            .allocation_unit_size = CONFIG_WL_SECTOR_SIZE
+    };
+    esp_err_t err = esp_vfs_fat_spiflash_mount(vfs_path, "storage", &mount_config, &s_wl_handle);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(CONFIG_LOG_TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
+        return;
+    }
+    
+    esp_log_set_vprintf(&log_printf);
+}
+
+
 void app_main(void) {
     uint64_t deep_micros;
     char strftime_buf[64];
@@ -91,6 +123,9 @@ void app_main(void) {
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+
+    // configure log output
+    configure_vfs();
 
     uint32_t main_sleep;
 #ifdef CONFIG_DEEP_SLEEP
@@ -162,6 +197,9 @@ void app_main(void) {
         deep_micros = get_seconds_among_hours(timeinfo.tm_hour, CONFIG_DEEP_SLEEP_STOP);
         deep_micros -= (timeinfo.tm_min * 60) + timeinfo.tm_sec;
         go_low_energy_mode(get_time_micros(deep_micros));
+
+        // close vfs
+        esp_vfs_fat_spiflash_unmount(vfs_path, s_wl_handle);
 #endif
     }
 }
