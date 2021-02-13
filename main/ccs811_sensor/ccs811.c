@@ -122,6 +122,7 @@ void ccs811_task(void *arg) {
 
             mean /= CONFIG_TEMP_N_SAMPLES;
             add_element(&co2_buffer, mean);
+            ESP_LOGI(CONFIG_LOG_TAG, "co2 = %f", mean);
             mean = 0;
         }
         else if(ev == CO2_ENABLE) {

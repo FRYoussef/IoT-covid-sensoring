@@ -3,13 +3,28 @@
  * Date: January 31th 2021
  **/
 
-#include "nvs_flash.h"
-
 #include "common.h"
-#include "gatt_table/gatt_table.h"
-#include "i2c_controller/i2c_controller.h"
-#include "si7021_sensor/si7021.h"
-#include "ccs811_sensor/ccs811.h"
+
+
+void go_low_energy_mode(){
+#ifdef CONFIG_DEEP_SLEEP
+    esp_sleep_enable_timer_wakeup(get_time_micros(30));
+    esp_deep_sleep_start();
+#endif
+}
+
+
+void print_wakeup_cause(esp_sleep_wakeup_cause_t cause){
+    switch (cause) {
+    case ESP_SLEEP_WAKEUP_TIMER:
+        ESP_LOGI(TAG, "Processor has been waked up by a timer.");
+        break;
+    
+    default:
+        ESP_LOGI(TAG, "Processor has been waked up by an undefined cause.");
+        break;
+    }
+}
 
 
 uint64_t get_time_micros(uint32_t t) {
@@ -18,6 +33,17 @@ uint64_t get_time_micros(uint32_t t) {
 
 
 void app_main(void) {
+#ifdef CONFIG_DEEP_SLEEP
+    print_wakeup_cause(esp_sleep_get_wakeup_cause());
+#endif
+
+    // power management configuration
+    esp_pm_config_esp32_t pm_config = {
+        .max_freq_mhz = CONFIG_MAX_CPU_FREQ_MHZ,
+        .min_freq_mhz = CONFIG_MIN_CPU_FREQ_MHZ,
+        .light_sleep_enable = true };
+    esp_pm_configure(&pm_config);
+
     esp_err_t ret;
 
     ESP_ERROR_CHECK(i2c_master_init());
@@ -67,5 +93,8 @@ void app_main(void) {
     xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 4, (void*)&si7021_args, uxTaskPriorityGet(NULL), NULL, 1);
     xTaskCreatePinnedToCore(&ccs811_task, "ccs811_task", 1024 * 2, (void*)&ccs811_args, uxTaskPriorityGet(NULL), NULL, 0);
 
-    while(1) { vTaskDelay(1000); }
+    while(1) { 
+        vTaskDelay(pdMS_TO_TICKS(10000));
+        go_low_energy_mode();
+    }
 }

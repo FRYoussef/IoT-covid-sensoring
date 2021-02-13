@@ -6,9 +6,19 @@
 #ifndef _COMMON_
 #define _COMMON_
 
+#include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "esp_sleep.h"
+#include "esp_pm.h"
+
+#include "gatt_table/gatt_table.h"
+#include "i2c_controller/i2c_controller.h"
+#include "si7021_sensor/si7021.h"
+#include "ccs811_sensor/ccs811.h"
 
 uint64_t get_time_micros(uint32_t t);
+void print_wakeup_cause(esp_sleep_wakeup_cause_t cause);
+void go_low_energy_mode();
 
 #endif
