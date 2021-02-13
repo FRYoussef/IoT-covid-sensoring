@@ -59,7 +59,7 @@ typedef struct
 static struct CircularBuffer co2_buffer;
 static ccs811_event_t ccs811_ev;
 
-int init_ccs811(int thresh, int interrupt, eDRIVE_MODE_t mode);
+int init_ccs811(int thresh, int interrupt, eDRIVE_MODE_t mode,  SemaphoreHandle_t i2c_sem);
 void ccs811_task(void *arg);
 float get_co2_moving_average();
 void update_co2_char(void *arg);

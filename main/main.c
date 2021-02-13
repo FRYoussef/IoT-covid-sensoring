@@ -8,14 +8,34 @@
 
 void go_low_energy_mode(){
 #ifdef CONFIG_DEEP_SLEEP
-    esp_sleep_enable_timer_wakeup(get_time_micros(30));
+    ESP_LOGI(CONFIG_LOG_TAG, "Going to deep sleep mode.");
+    esp_sleep_enable_timer_wakeup(get_time_micros(
+        get_second_among_hours(CONFIG_DEEP_SLEEP_START, CONFIG_DEEP_SLEEP_STOP)));
     esp_deep_sleep_start();
 #endif
+}
+
+uint64_t get_second_among_hours(uint8_t start, uint8_t end){
+    if(end < start)
+        end += 24;
+
+    return (uint64_t)((end - start) * 3600);
 }
 
 
 uint64_t get_time_micros(uint32_t t) {
     return 1000000 * t;
+}
+
+
+void print_wakeup_cause(esp_sleep_wakeup_cause_t cause){
+    switch (cause) {
+    case ESP_SLEEP_WAKEUP_TIMER:
+        ESP_LOGI(CONFIG_LOG_TAG, "Restarted from deep sleep.");
+        break;
+    default:
+        break;
+    }
 }
 
 
@@ -27,17 +47,20 @@ void app_main(void) {
         .light_sleep_enable = true };
     esp_pm_configure(&pm_config);
 
-    esp_err_t ret;
-
-    ESP_ERROR_CHECK(i2c_master_init());
-
     /* Initialize NVS. */
+    esp_err_t ret;
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+
+#ifdef CONFIG_DEEP_SLEEP
+    print_wakeup_cause(esp_sleep_get_wakeup_cause());
+#endif
+
+    ESP_ERROR_CHECK(i2c_master_init());
 
     SemaphoreHandle_t i2c_sem = xSemaphoreCreateBinary();
     xSemaphoreGive(i2c_sem);
@@ -73,11 +96,11 @@ void app_main(void) {
     configure_gatt_server(&si7021_control, &ccs811_control);
     ESP_LOGI(CONFIG_LOG_TAG, "GATT server well configured");
 
-    xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 4, (void*)&si7021_args, uxTaskPriorityGet(NULL), NULL, 1);
+    xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 3, (void*)&si7021_args, uxTaskPriorityGet(NULL), NULL, 1);
     xTaskCreatePinnedToCore(&ccs811_task, "ccs811_task", 1024 * 2, (void*)&ccs811_args, uxTaskPriorityGet(NULL), NULL, 0);
 
     while(1) { 
         vTaskDelay(pdMS_TO_TICKS(10000));
-        go_low_energy_mode();
+        //go_low_energy_mode();
     }
 }

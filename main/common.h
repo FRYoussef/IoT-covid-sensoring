@@ -19,5 +19,6 @@
 
 uint64_t get_time_micros(uint32_t t);
 void go_low_energy_mode();
+uint64_t get_second_among_hours(uint8_t start, uint8_t end);
 
 #endif

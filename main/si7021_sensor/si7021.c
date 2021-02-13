@@ -103,7 +103,6 @@ void si7021_task(void *arg) {
 
             mean /= CONFIG_TEMP_N_SAMPLES;
             add_element(&tBuffer, mean);
-            ESP_LOGI(CONFIG_LOG_TAG, "temp = %f", mean);
             mean = 0;
         }
         else if(ev == HUM_SAMPLE && hum_enb){
@@ -120,7 +119,6 @@ void si7021_task(void *arg) {
 
             mean /= CONFIG_HUM_N_SAMPLES;
             add_element(&hBuffer, mean);
-            ESP_LOGI(CONFIG_LOG_TAG, "hum = %f", mean);
             mean = 0;
         }
         else if (ev == TEMP_ENABLE){
