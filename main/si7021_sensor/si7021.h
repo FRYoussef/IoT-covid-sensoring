@@ -54,5 +54,9 @@ void update_temperature_char(void *arg);
 void update_humidity_char(void *arg);
 static void chrono_sample_temp(void *arg);
 static void chrono_sample_hum(void *arg);
+float get_temp_moving_average();
+float get_hum_moving_average();
+bool are_temp_samples();
+bool are_hum_samples();
 
 #endif

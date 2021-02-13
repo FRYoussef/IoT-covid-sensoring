@@ -155,15 +155,20 @@ void si7021_task(void *arg) {
 }
 
 
-void update_temperature_char(void *arg) {
-    uint8_t *temp = (uint8_t *)arg;
+float get_temp_moving_average(){
     float mean = 0;
 
     for(int i = 0; i < tBuffer.counter; i++)
         mean += get_element(&tBuffer);
     
     mean /= tBuffer.counter;
+    return mean;
+}
 
+
+void update_temperature_char(void *arg) {
+    uint8_t *temp = (uint8_t *)arg;
+    float mean = get_temp_moving_average();
     uint8_t intpart = (uint8_t)mean;
     float dec = (mean - intpart) * 100; // get just 2 decimal
     uint8_t decpart = (uint8_t)dec;
@@ -173,15 +178,20 @@ void update_temperature_char(void *arg) {
 }
 
 
-void update_humidity_char(void *arg) {
-    uint8_t *hum = (uint8_t *)arg;
+float get_hum_moving_average(){
     float mean = 0;
 
     for(int i = 0; i < hBuffer.counter; i++)
         mean += get_element(&hBuffer);
     
     mean /= hBuffer.counter;
+    return mean;
+}
 
+
+void update_humidity_char(void *arg) {
+    uint8_t *hum = (uint8_t *)arg;
+    float mean = get_hum_moving_average();
     uint8_t intpart = (uint8_t)mean;
     float dec = (mean - intpart) * 100; // get just 2 decimal
     uint8_t decpart = (uint8_t)dec;
@@ -202,4 +212,14 @@ static void chrono_sample_hum(void *arg) {
     si7021_ev = HUM_SAMPLE;
     QueueHandle_t *queue = (QueueHandle_t*) arg;
     xQueueSendToFront(*queue, (void *) &si7021_ev, 100);
+}
+
+
+bool are_temp_samples() {
+    return tBuffer.counter > 0;
+}
+
+
+bool are_hum_samples() {
+    return hBuffer.counter > 0;
 }

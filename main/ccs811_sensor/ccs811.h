@@ -12,9 +12,10 @@
 
 #include "circular_buffer/circular_buffer.h"
 
+#define CCS811_FISRT_ENV_VARS_T                   6  
+#define CCS811_DELAY                              100
 #define CCS811_HW_ID                              0x81
 #define CCS811_SENSOR_ADDR                        0x5A   /*!< slave address for ccs811 sensor */
-#define CCS811_DELAY                              100
 
 #define CCS811_REG_STATUS                         0x00
 #define CCS811_REG_MEAS_MODE                      0x01
@@ -39,6 +40,7 @@ typedef enum
     CO2_SAMPLE,
     CO2_SAMPLE_FREQ,
     CO2_ENABLE,
+    CO2_UPDATE_ENV_VARS,
 } ccs811_event_t;
 
 typedef struct
@@ -59,9 +61,12 @@ static ccs811_event_t ccs811_ev;
 
 int init_ccs811(int thresh, int interrupt, eDRIVE_MODE_t mode);
 void ccs811_task(void *arg);
+float get_co2_moving_average();
 void update_co2_char(void *arg);
 void set_environment_vars(float temperature, float humidity);
 esp_err_t get_co2(int i2c_num, int *co2, SemaphoreHandle_t i2c_sem);
 static void chrono_sample_co2(void *arg);
+bool are_co2_samples();
+static void chrono_set_environment(void *arg);
 
 #endif

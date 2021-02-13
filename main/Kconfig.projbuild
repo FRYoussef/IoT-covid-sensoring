@@ -96,5 +96,12 @@ menu "ESP32 sensoring configuration"
 			default 5
 			help
 				moving average to send
+
+		config CCS811_ENV_VARS_T
+			int "adjust environment variables time"
+			range 120 1000000000000
+			default 3600
+			help
+				seconds to adjust temperature and humidity compensation
 	endmenu
 endmenu

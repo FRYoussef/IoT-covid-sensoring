@@ -75,7 +75,7 @@ void ccs811_task(void *arg) {
     int ret, co2;
     double mean = 0;
     bool start = true;
-    esp_timer_handle_t timer_co2;
+    esp_timer_handle_t timer_co2, timer_env_vars;
     BaseType_t q_ready;
     bool co2_enb = true;
 
@@ -86,6 +86,13 @@ void ccs811_task(void *arg) {
         .arg = (void *)&params->event_queue,
     };
     esp_timer_create(&chrono_args_t, &timer_co2);
+
+    const esp_timer_create_args_t env_args_t = {
+        .callback = &chrono_set_environment,
+        .name = "chrono co2 environment compensation",
+        .arg = (void *)&params->event_queue,
+    };
+    esp_timer_create(&env_args_t, &timer_env_vars);
     
     init_buffer(&co2_buffer, CONFIG_CO2_WINDOW_SIZE);
 
@@ -96,6 +103,7 @@ void ccs811_task(void *arg) {
 
     if(start) {
         ESP_LOGI(CONFIG_LOG_TAG, "ccs811 task started");
+        esp_timer_start_once(timer_env_vars, get_time_micros(CCS811_FISRT_ENV_VARS_T));
         esp_timer_start_periodic(timer_co2, get_time_micros(*params->co2_samp_freq));
     }
 
@@ -125,8 +133,20 @@ void ccs811_task(void *arg) {
         }
         else if(ev == CO2_SAMPLE_FREQ) {
             esp_timer_stop(timer_co2);
-            ESP_LOGI(CONFIG_LOG_TAG, "Changed temperature sample to each %d s", *params->co2_samp_freq);
+            ESP_LOGI(CONFIG_LOG_TAG, "Changed co2 sample to each %d s", *params->co2_samp_freq);
             esp_timer_start_periodic(timer_co2, get_time_micros(*params->co2_samp_freq));
+        }
+        else if(ev == CO2_UPDATE_ENV_VARS) {
+            if(!are_temp_samples() || !are_hum_samples()) {
+                esp_timer_start_once(timer_env_vars, get_time_micros(CCS811_FISRT_ENV_VARS_T));
+            }
+            else {
+                float temp = get_temp_moving_average();
+                float hum = get_hum_moving_average();
+                set_environment_vars(temp, hum);
+                ESP_LOGI(CONFIG_LOG_TAG, "Updated environment variables in sensor ccs811");
+                esp_timer_start_once(timer_env_vars, get_time_micros(CONFIG_CCS811_ENV_VARS_T));
+            }
         }
         
         do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);
@@ -157,15 +177,21 @@ esp_err_t get_co2(int i2c_num, int *co2, SemaphoreHandle_t i2c_sem){
 }
 
 
-void update_co2_char(void *arg) {
-    uint8_t *co2 = (uint8_t *)arg;
+float get_co2_moving_average() {
     float mean = 0;
 
     for(int i = 0; i < co2_buffer.counter; i++)
         mean += get_element(&co2_buffer);
     
     mean /= co2_buffer.counter;
-    int mean_i = (int) mean;
+    return mean;
+}
+
+
+void update_co2_char(void *arg) {
+    uint8_t *co2 = (uint8_t *)arg;
+
+    int mean_i = (int) get_co2_moving_average();
 
     co2[0] = (uint8_t)((mean_i >> 8) & 0xFF);
     co2[1] = (uint8_t)(mean_i & 0xFF);
@@ -176,4 +202,16 @@ static void chrono_sample_co2(void *arg) {
     ccs811_ev = CO2_SAMPLE;
     QueueHandle_t *queue = (QueueHandle_t*) arg;
     xQueueSendToFront(*queue, (void *) &ccs811_ev, 100);
+}
+
+
+static void chrono_set_environment(void *arg) {
+    ccs811_ev = CO2_UPDATE_ENV_VARS;
+    QueueHandle_t *queue = (QueueHandle_t*) arg;
+    xQueueSendToFront(*queue, (void *) &ccs811_ev, 100);
+}
+
+
+bool are_co2_samples() {
+    return co2_buffer.counter > 0;
 }
