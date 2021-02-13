@@ -96,7 +96,7 @@ void ccs811_task(void *arg) {
 
     if(start) {
         ESP_LOGI(CONFIG_LOG_TAG, "ccs811 task started");
-        esp_timer_start_periodic(timer_co2, get_time_micros(params->co2_samp_freq));
+        esp_timer_start_periodic(timer_co2, get_time_micros(*params->co2_samp_freq));
     }
 
     while (start) {
@@ -125,8 +125,8 @@ void ccs811_task(void *arg) {
         }
         else if(ev == CO2_SAMPLE_FREQ) {
             esp_timer_stop(timer_co2);
-            ESP_LOGI(CONFIG_LOG_TAG, "Changed temperature sample to %d s", params->co2_samp_freq[1]<<8 | params->co2_samp_freq[0]);
-            esp_timer_start_periodic(timer_co2, get_time_micros(params->co2_samp_freq));
+            ESP_LOGI(CONFIG_LOG_TAG, "Changed temperature sample to each %d s", *params->co2_samp_freq);
+            esp_timer_start_periodic(timer_co2, get_time_micros(*params->co2_samp_freq));
         }
         
         do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);

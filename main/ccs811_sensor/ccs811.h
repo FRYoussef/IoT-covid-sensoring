@@ -43,10 +43,16 @@ typedef enum
 
 typedef struct
 {
-    uint8_t *co2_samp_freq;
+    uint32_t *co2_samp_freq;
     QueueHandle_t event_queue;
     SemaphoreHandle_t i2c_sem;
 } ccs811_args_t;
+
+typedef struct
+{
+    uint32_t *co2_samp_freq; // seconds
+    QueueHandle_t event_queue;
+} ccs811_control_args_t;
 
 static struct CircularBuffer co2_buffer;
 static ccs811_event_t ccs811_ev;

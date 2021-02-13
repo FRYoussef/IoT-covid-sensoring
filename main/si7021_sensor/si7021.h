@@ -32,11 +32,18 @@ typedef enum
 
 typedef struct
 {
-    uint8_t *temp_samp_freq;
-    uint8_t *hum_samp_freq;
+    uint32_t *temp_samp_freq;
+    uint32_t *hum_samp_freq;
     QueueHandle_t event_queue;
     SemaphoreHandle_t i2c_sem;
 } si7021_args_t;
+
+typedef struct
+{
+    uint32_t *temp_samp_freq;
+    uint32_t *hum_samp_freq;
+    QueueHandle_t event_queue;
+} si7021_control_args_t;
 
 static struct CircularBuffer tBuffer;
 static struct CircularBuffer hBuffer;

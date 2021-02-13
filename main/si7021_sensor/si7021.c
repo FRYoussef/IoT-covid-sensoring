@@ -84,8 +84,8 @@ void si7021_task(void *arg) {
     };
     esp_timer_create(&chrono_args_h, &timer_hum);
 
-    esp_timer_start_periodic(timer_temp, get_time_micros(params->temp_samp_freq));
-    esp_timer_start_periodic(timer_hum, get_time_micros(params->hum_samp_freq));
+    esp_timer_start_periodic(timer_temp, get_time_micros(*params->temp_samp_freq));
+    esp_timer_start_periodic(timer_hum, get_time_micros(*params->hum_samp_freq));
     ESP_LOGI(CONFIG_LOG_TAG, "si7021 task started");
 
     while (1) {
@@ -137,13 +137,13 @@ void si7021_task(void *arg) {
         }
         else if (ev == TEMP_SAMPLE_FREQ) {
             esp_timer_stop(timer_temp);
-            ESP_LOGI(CONFIG_LOG_TAG, "Changed temperature sample to %d s", params->temp_samp_freq[1]<<8 | params->temp_samp_freq[0]);
-            esp_timer_start_periodic(timer_temp, get_time_micros(params->temp_samp_freq));
+            ESP_LOGI(CONFIG_LOG_TAG, "Changed temperature sample to each %d s", *params->temp_samp_freq);
+            esp_timer_start_periodic(timer_temp, get_time_micros(*params->temp_samp_freq));
         }
         else if (ev == HUM_SAMPLE_FREQ) {
             esp_timer_stop(timer_hum);
-            ESP_LOGI(CONFIG_LOG_TAG, "Changed humidity sample to %d s", params->hum_samp_freq[1]<<8 | params->hum_samp_freq[0]);
-            esp_timer_start_periodic(timer_hum, get_time_micros(params->hum_samp_freq));
+            ESP_LOGI(CONFIG_LOG_TAG, "Changed humidity sample to each %d s", *params->hum_samp_freq);
+            esp_timer_start_periodic(timer_hum, get_time_micros(*params->hum_samp_freq));
         }
         
         do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);

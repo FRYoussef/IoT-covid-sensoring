@@ -12,8 +12,8 @@
 #include "ccs811_sensor/ccs811.h"
 
 
-int get_time_micros(uint8_t *t) {
-    return 1000000 * (t[1] << 8 | t[0]);
+int get_time_micros(uint32_t t) {
+    return 1000000 * t;
 }
 
 
@@ -34,21 +34,34 @@ void app_main(void) {
     xSemaphoreGive(i2c_sem);
     
     QueueHandle_t si7021_queue = xQueueCreate(5, sizeof(si7021_event_t));
+    uint32_t temp_samp_freq = temp_ccc[1] << 8 | temp_ccc[0];
+    uint32_t hum_samp_freq = hum_ccc[1] << 8 | hum_ccc[0];
     si7021_args_t si7021_args = {
-        .temp_samp_freq = temp_ccc,
-        .hum_samp_freq = hum_ccc,
+        .temp_samp_freq = &temp_samp_freq,
+        .hum_samp_freq = &hum_samp_freq,
         .event_queue = si7021_queue,
         .i2c_sem = i2c_sem,
     };
+    si7021_control_args_t si7021_control = {
+        .temp_samp_freq = &temp_samp_freq,
+        .hum_samp_freq = &hum_samp_freq,
+        .event_queue = si7021_queue,
+    };
+
     QueueHandle_t ccs811_queue = xQueueCreate(5, sizeof(ccs811_event_t));
+    uint32_t co2_samp_freq = co2_ccc[1] << 8 | co2_ccc[0];
     ccs811_args_t ccs811_args = {
-        .co2_samp_freq = co2_ccc,
+        .co2_samp_freq = &co2_samp_freq,
         .event_queue = ccs811_queue,
         .i2c_sem = i2c_sem,
     };
+    ccs811_control_args_t ccs811_control = {
+        .co2_samp_freq = &co2_samp_freq,
+        .event_queue = ccs811_queue,
+    };
 
     ESP_LOGI(CONFIG_LOG_TAG, "Configuring GATT server");
-    configure_gatt_server(si7021_queue, ccs811_queue);
+    configure_gatt_server(&si7021_control, &ccs811_control);
     ESP_LOGI(CONFIG_LOG_TAG, "GATT server well configured");
 
     xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 4, (void*)&si7021_args, uxTaskPriorityGet(NULL), NULL, 1);
