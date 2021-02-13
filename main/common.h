@@ -18,7 +18,6 @@
 #include "ccs811_sensor/ccs811.h"
 
 uint64_t get_time_micros(uint32_t t);
-void print_wakeup_cause(esp_sleep_wakeup_cause_t cause);
 void go_low_energy_mode();
 
 #endif

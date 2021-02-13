@@ -14,29 +14,12 @@ void go_low_energy_mode(){
 }
 
 
-void print_wakeup_cause(esp_sleep_wakeup_cause_t cause){
-    switch (cause) {
-    case ESP_SLEEP_WAKEUP_TIMER:
-        ESP_LOGI(TAG, "Processor has been waked up by a timer.");
-        break;
-    
-    default:
-        ESP_LOGI(TAG, "Processor has been waked up by an undefined cause.");
-        break;
-    }
-}
-
-
 uint64_t get_time_micros(uint32_t t) {
     return 1000000 * t;
 }
 
 
 void app_main(void) {
-#ifdef CONFIG_DEEP_SLEEP
-    print_wakeup_cause(esp_sleep_get_wakeup_cause());
-#endif
-
     // power management configuration
     esp_pm_config_esp32_t pm_config = {
         .max_freq_mhz = CONFIG_MAX_CPU_FREQ_MHZ,
