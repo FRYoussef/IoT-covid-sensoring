@@ -2,7 +2,7 @@ menu "ESP32 sensoring configuration"
 	menu "Power managment"
 		config DEEP_SLEEP
 			bool "Enable deep sleep mode"
-			default true
+			default y
 
 		config DEEP_SLEEP_START
 			int "Deep sleep start hour"
@@ -170,5 +170,20 @@ menu "ESP32 sensoring configuration"
 			default 3600
 			help
 				seconds to adjust temperature and humidity compensation
+	endmenu
+
+	menu "WiFi Connection Configuration"
+		config WIFI_SSID
+			string "WiFi SSID"
+			default "myssid"
+			help
+				SSID (network name) for the example to connect to.
+
+		config WIFI_PASSWORD
+			string "WiFi Password"
+			default "mypassword"
+			help
+				WiFi password (WPA or WPA2) for the example to use.
+				Can be left blank if the network has no security set.
 	endmenu
 endmenu
