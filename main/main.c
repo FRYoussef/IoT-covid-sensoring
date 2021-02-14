@@ -212,4 +212,6 @@ void app_main(void) {
         esp_vfs_fat_spiflash_unmount(vfs_path, s_wl_handle);
 #endif
     }
+
+    free_beacon_mem();
 }
