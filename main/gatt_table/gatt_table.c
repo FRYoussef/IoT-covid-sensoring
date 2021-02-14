@@ -126,10 +126,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     queue = si7021_control->event_queue;
                     ev_enb = HUM_ENABLE;
                 }
-                else if (sensoring_handle_table[IDX_CHAR_CAP_ENB] == param->write.handle) {
-                    char_cfg = cap_enb;
-                    char_idx = IDX_CHAR_CAP_VAL;
-                    val = (uint8_t *) &cap_char_value;
+                else if (sensoring_handle_table[IDX_CHAR_DEV_ENB] == param->write.handle) {
+                    char_cfg = dev_enb;
+                    char_idx = IDX_CHAR_DEV_VAL;
+                    val = (uint8_t *) &dev_char_value;
                     foo = update_ble_devices_char;
                 }
 
@@ -187,10 +187,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     xQueueSendToFront(si7021_control->event_queue, (void *) &si7021_ev, 100);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_HUM_T_CFG to %d", *si7021_control->hum_samp_freq);
                 }
-                else if(sensoring_handle_table[IDX_CHAR_CAP_D_CFG] == param->write.handle && param->write.len == 2) {
-                    copy_char(param->write.value, cap_ccc, 2);
-                    *beacon_control->max_distance = cap_ccc[1] << 8 | cap_ccc[0];
-                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CAP_D_CFG to %d", cap_ccc[1] << 8 | cap_ccc[0]);
+                else if(sensoring_handle_table[IDX_CHAR_DEV_D_CFG] == param->write.handle && param->write.len == 2) {
+                    copy_char(param->write.value, dev_ccc, 2);
+                    *beacon_control->max_distance = dev_ccc[1] << 8 | dev_ccc[0];
+                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_DEV_D_CFG to %d", dev_ccc[1] << 8 | dev_ccc[0]);
                 }
 
                 /* send response when param->write.need_rsp is true*/
