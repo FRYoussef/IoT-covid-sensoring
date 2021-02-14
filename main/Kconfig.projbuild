@@ -171,7 +171,28 @@ menu "ESP32 sensoring configuration"
 			help
 				seconds to adjust temperature and humidity compensation
 	endmenu
+	menu "beacon counter"
+		config SEND_FREQ_BEACON_COUNTER
+			int "beacon device counter sending frequency"
+			range 1000000 1000000000000
+			default 5000000
+			help
+				sending frequency in microseconds
 
+		config BEACON_COUNTER_WINDOW_SIZE
+			int "beacon window size"
+			range 1 10
+			default 5
+			help
+				moving average to send
+
+		config UNREACHED_DEVICES_T
+			int "Time (minutes) to quit from buffer unreached devices"
+			range 1 10000
+			default 5
+			help
+				minutes to quit unreached devices from queue 
+	endmenu
 	menu "WiFi Connection Configuration"
 		config WIFI_SSID
 			string "WiFi SSID"

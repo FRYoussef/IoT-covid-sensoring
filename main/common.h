@@ -20,6 +20,7 @@
 #include "si7021_sensor/si7021.h"
 #include "ccs811_sensor/ccs811.h"
 #include "wifi_controller/wifi_controller.h"
+#include "ble_beacon_counter/ble_beacon_counter.h"
 
 #define SNTP_TRIES 10
 

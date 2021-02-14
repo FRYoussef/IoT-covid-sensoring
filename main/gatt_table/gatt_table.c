@@ -16,6 +16,9 @@ void copy_char(uint8_t *in, uint8_t *out, int n){
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
+    // beacon counter action
+    beacon_control->callback(event, param);
+
     switch (event) {
         case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
             adv_config_done &= (~ADV_CONFIG_FLAG);
@@ -33,16 +36,11 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
             /* advertising start complete event to indicate advertising start successfully or failed */
             if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
                 ESP_LOGE(CONFIG_LOG_TAG, "advertising start failed");
-            }else{
-                ESP_LOGI(CONFIG_LOG_TAG, "advertising start successfully");
             }
             break;
         case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
             if (param->adv_stop_cmpl.status != ESP_BT_STATUS_SUCCESS) {
                 ESP_LOGE(CONFIG_LOG_TAG, "Advertising stop failed");
-            }
-            else {
-                ESP_LOGI(CONFIG_LOG_TAG, "Stop adv successfully\n");
             }
             break;
         case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
@@ -128,10 +126,11 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     queue = si7021_control->event_queue;
                     ev_enb = HUM_ENABLE;
                 }
-                else if (sensoring_handle_table[IDX_CHAR_CAP_ENB] == param->write.handle) {
-                    char_cfg = cap_enb;
-                    char_idx = IDX_CHAR_CAP_VAL;
-                    val = (uint8_t *) &cap_char_value;
+                else if (sensoring_handle_table[IDX_CHAR_DEV_ENB] == param->write.handle) {
+                    char_cfg = dev_enb;
+                    char_idx = IDX_CHAR_DEV_VAL;
+                    val = (uint8_t *) &dev_char_value;
+                    foo = update_ble_devices_char;
                 }
 
                 if (char_cfg != NULL && param->write.len == 2){
@@ -140,8 +139,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     if (descr_value == 1){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify enable");
                         
-                        if(char_cfg[0] != descr_value)
+                        if(queue != NULL && char_cfg[0] != descr_value)
                             xQueueSendToFront(queue, (void *) &ev_enb, 100);
+                        else // means beacon devices
+                            *beacon_control->beacon_enb = true;
                         
                         char_cfg[0] = descr_value;
 
@@ -154,8 +155,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     else if (descr_value == 0){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify disable ");
                         
-                        if(char_cfg[0] != descr_value)
+                        if(queue != NULL && char_cfg[0] != descr_value)
                             xQueueSendToFront(queue, (void *) &ev_enb, 100);
+                        else // means beacon devices
+                            *beacon_control->beacon_enb = false; 
 
                         char_cfg[0] = descr_value;
                     }else{
@@ -184,9 +187,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     xQueueSendToFront(si7021_control->event_queue, (void *) &si7021_ev, 100);
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_HUM_T_CFG to %d", *si7021_control->hum_samp_freq);
                 }
-                else if(sensoring_handle_table[IDX_CHAR_CAP_D_CFG] == param->write.handle && param->write.len == 2) {
-                    copy_char(param->write.value, cap_ccc, 2);
-                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CAP_D_CFG to %d", cap_ccc[1] << 8 | cap_ccc[0]);
+                else if(sensoring_handle_table[IDX_CHAR_DEV_D_CFG] == param->write.handle && param->write.len == 2) {
+                    copy_char(param->write.value, dev_ccc, 2);
+                    *beacon_control->max_distance = dev_ccc[1] << 8 | dev_ccc[0];
+                    ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_DEV_D_CFG to %d", dev_ccc[1] << 8 | dev_ccc[0]);
                 }
 
                 /* send response when param->write.need_rsp is true*/
@@ -280,9 +284,10 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     } while (0);
 }
 
-void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2) {
+void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2, beacon_control_args_t *c3) {
     si7021_control = c1;
     ccs811_control = c2;
+    beacon_control = c3;
     esp_err_t ret;
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
@@ -311,6 +316,9 @@ void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2)
         ESP_LOGE(CONFIG_LOG_TAG, "%s enable bluetooth failed: %s", __func__, esp_err_to_name(ret));
         return;
     }
+
+    // init beacon counter
+    beacon_control->init();
 
     ret = esp_ble_gatts_register_callback(gatts_event_handler);
     if (ret){

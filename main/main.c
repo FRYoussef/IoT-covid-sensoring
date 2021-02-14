@@ -183,8 +183,18 @@ void app_main(void) {
         .event_queue = ccs811_queue,
     };
 
+    bool b_enb = true;
+    uint32_t max_d = 20;
+    beacon_init_vars(&b_enb, &max_d);
+    beacon_control_args_t beacon_control = {
+        .beacon_enb = &b_enb,
+        .max_distance = &max_d,
+        .init = &init_beacon_counter,
+        .callback = &beacon_fsm,
+    };
+
     // Configuring GATT server
-    configure_gatt_server(&si7021_control, &ccs811_control);
+    configure_gatt_server(&si7021_control, &ccs811_control, &beacon_control);
 
     xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 3, (void*)&si7021_args, uxTaskPriorityGet(NULL), NULL, 1);
     xTaskCreatePinnedToCore(&ccs811_task, "ccs811_task", 1024 * 2, (void*)&ccs811_args, uxTaskPriorityGet(NULL), NULL, 0);
@@ -202,4 +212,6 @@ void app_main(void) {
         esp_vfs_fat_spiflash_unmount(vfs_path, s_wl_handle);
 #endif
     }
+
+    free_beacon_mem();
 }

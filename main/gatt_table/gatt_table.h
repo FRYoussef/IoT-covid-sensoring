@@ -24,6 +24,7 @@
 
 #include "si7021_sensor/si7021.h"
 #include "ccs811_sensor/ccs811.h"
+#include "ble_beacon_counter/ble_beacon_counter.h"
 
 /* Attributes State Machine */
 enum GattAttr{
@@ -44,10 +45,10 @@ enum GattAttr{
     IDX_CHAR_HUM_T_CFG, // Time sensoring configuration in s
     IDX_CHAR_HUM_ENB, // humidity enable/disable
 
-    IDX_CHAR_CAP, // capacity characteristic
-    IDX_CHAR_CAP_VAL, // capacity value
-    IDX_CHAR_CAP_D_CFG, // distance sensoring configuration in meters
-    IDX_CHAR_CAP_ENB, // capacity enable/disable
+    IDX_CHAR_DEV, // number of devices characteristic
+    IDX_CHAR_DEV_VAL, // number of devices value
+    IDX_CHAR_DEV_D_CFG, // distance sensoring configuration in meters
+    IDX_CHAR_DEV_ENB, // number of devices enable/disable
 
     SEN_IDX_NB, // table elements
 };
@@ -131,18 +132,19 @@ static struct gatts_profile_inst sensoring_profile_tab[PROFILE_NUM] = {
     },
 };
 
-/* queue events */
+/* control args and queue events */
 static si7021_control_args_t *si7021_control;
 static si7021_event_t si7021_ev;
 static ccs811_control_args_t *ccs811_control;
 static ccs811_event_t ccs811_ev;
+static beacon_control_args_t *beacon_control;
 
 /* Service */
 static const uint16_t GATTS_SERVICE_UUID           = 0x00FF;
 static const uint16_t GATTS_CHAR_UUID_CO2          = 0xFF01;
 static const uint16_t GATTS_CHAR_UUID_TEMP         = 0xFF02;
 static const uint16_t GATTS_CHAR_UUID_HUM          = 0xFF03;
-static const uint16_t GATTS_CHAR_UUID_CAP          = 0xFF04;
+static const uint16_t GATTS_CHAR_UUID_DEV          = 0xFF04;
 
 static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
@@ -153,15 +155,15 @@ static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRIT
 static uint8_t co2_char_value[2]                   = {0x00, 0x00};
 static uint8_t temp_char_value[2]                  = {0x00, 0x00}; // temp_char_value[0] = int part; temp_char_value[1] decimal part
 static uint8_t hum_char_value[2]                   = {0x00, 0x00};
-static uint8_t cap_char_value[2]                   = {0x00, 0x00};
+static uint8_t dev_char_value[2]                   = {0x00, 0x00};
 static uint8_t co2_ccc[2]                          = {0x05, 0x00};
 static uint8_t temp_ccc[2]                         = {0x05, 0x00};
 static uint8_t hum_ccc[2]                          = {0x05, 0x00};
-static uint8_t cap_ccc[2]                          = {0x05, 0x00};
+static uint8_t dev_ccc[2]                          = {0x05, 0x00};
 static uint8_t co2_enb[1]                          = {0x01};
 static uint8_t temp_enb[1]                         = {0x01};
 static uint8_t hum_enb[1]                          = {0x01};
-static uint8_t cap_enb[1]                          = {0x01};
+static uint8_t dev_enb[1]                          = {0x01};
 
 /* Full Database Description - Used to add attributes into the database */
 static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
@@ -232,26 +234,26 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
       sizeof(uint16_t), sizeof(hum_enb), (uint8_t *)hum_enb}},
 
     /* Characteristic Declaration */
-    [IDX_CHAR_CAP]     =
+    [IDX_CHAR_DEV]     =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
       CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
 
     /* Characteristic Value */
-    [IDX_CHAR_CAP_VAL] =
-    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_CAP, ESP_GATT_PERM_READ,
-      GATT_CHAR_VAL_LEN_MAX, sizeof(cap_char_value), (uint8_t *)cap_char_value}},
+    [IDX_CHAR_DEV_VAL] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_DEV, ESP_GATT_PERM_READ,
+      GATT_CHAR_VAL_LEN_MAX, sizeof(dev_char_value), (uint8_t *)dev_char_value}},
 
     /* Client Characteristic Configuration Descriptor */
-    [IDX_CHAR_CAP_D_CFG]  =
+    [IDX_CHAR_DEV_D_CFG]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      sizeof(uint16_t), sizeof(cap_ccc), (uint8_t *)cap_ccc}},
+      sizeof(uint16_t), sizeof(dev_ccc), (uint8_t *)dev_ccc}},
 
     /* Client Characteristic Configuration Descriptor */
-    [IDX_CHAR_CAP_ENB]  =
+    [IDX_CHAR_DEV_ENB]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      sizeof(uint16_t), sizeof(cap_enb), (uint8_t *)cap_enb}},
+      sizeof(uint16_t), sizeof(dev_enb), (uint8_t *)dev_enb}},
 };
 
-void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2);
+void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2, beacon_control_args_t *c3);
 
 #endif
