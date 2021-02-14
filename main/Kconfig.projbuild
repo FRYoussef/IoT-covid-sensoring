@@ -1,0 +1,217 @@
+menu "ESP32 sensoring configuration"
+	menu "Power managment"
+		config DEEP_SLEEP
+			bool "Enable deep sleep mode"
+			default y
+
+		config DEEP_SLEEP_START
+			int "Deep sleep start hour"
+			range 0 23
+			default 22
+			help
+				Hour to start deep sleep
+
+		config DEEP_SLEEP_STOP
+			int "Deep sleep stop hour"
+			range 0 23
+			default 8
+			help
+				Hour to stop deep sleep
+
+		choice EXAMPLE_MAX_CPU_FREQ
+			prompt "Maximum CPU frequency"
+			default EXAMPLE_MAX_CPU_FREQ_240
+			help
+				Maximum CPU frequency to use for dynamic frequency scaling.
+
+			config EXAMPLE_MAX_CPU_FREQ_80
+				bool "80 MHz"
+			config EXAMPLE_MAX_CPU_FREQ_160
+				bool "160 MHz"
+			config EXAMPLE_MAX_CPU_FREQ_240
+				bool "240 MHz"
+		endchoice
+
+		config MAX_CPU_FREQ_MHZ
+			int
+			default 80 if EXAMPLE_MAX_CPU_FREQ_80
+			default 160 if EXAMPLE_MAX_CPU_FREQ_160
+			default 240 if EXAMPLE_MAX_CPU_FREQ_240
+
+
+		choice EXAMPLE_MIN_CPU_FREQ
+			prompt "Minimum CPU frequency"
+			default EXAMPLE_MIN_CPU_FREQ_40M
+			help
+				Minimum CPU frequency to use for dynamic frequency scaling.
+
+			config EXAMPLE_MIN_CPU_FREQ_40M
+				bool "40 MHz"
+			config EXAMPLE_MIN_CPU_FREQ_20M
+				bool "20 MHz"
+			config EXAMPLE_MIN_CPU_FREQ_10M
+				bool "10 MHz"
+			config EXAMPLE_MIN_CPU_FREQ_26M
+				bool "26 MHz"
+			config EXAMPLE_MIN_CPU_FREQ_13M
+				bool "13 MHz"
+		endchoice
+
+	endmenu
+
+    config MIN_CPU_FREQ_MHZ
+        int
+        default 40 if EXAMPLE_MIN_CPU_FREQ_40M
+        default 20 if EXAMPLE_MIN_CPU_FREQ_20M
+        default 10 if EXAMPLE_MIN_CPU_FREQ_10M
+        default 26 if EXAMPLE_MIN_CPU_FREQ_26M
+        default 13 if EXAMPLE_MIN_CPU_FREQ_13M
+
+	config LOG_TAG
+		string "Log tag"
+		default "ESP32_SENSORING"
+		help
+			Log tag to show or store app logouts.
+
+	config TWDT_TIMEOUT_S
+		int "Watchdog timeout in seconds"
+		range 10 100000
+		default 20
+		help
+			Watchdog timeout to avoid program blocks.
+
+	menu "I2C Master"
+		config I2C_MASTER_SCL
+			int "SCL GPIO Num"
+			default 19
+			help
+				GPIO number for I2C Master clock line.
+
+		config I2C_MASTER_SDA
+			int "SDA GPIO Num"
+			default 18
+			help
+				GPIO number for I2C Master data line.
+
+		config I2C_MASTER_PORT_NUM
+			int "Port Number"
+			default 1
+			help
+				Port number for I2C Master device.
+
+		config I2C_MASTER_FREQUENCY
+			int "Master Frequency"
+			default 100000
+			help
+				I2C Speed of Master device.
+	endmenu
+
+	menu "si7021 sensor"
+		config SEND_FREQ_T
+			int "temperature sending frequency"
+			range 1000000 1000000000000
+			default 5000000
+			help
+				microseconds of sending frequency
+
+		config TEMP_N_SAMPLES
+			int "temperature sample number"
+			range 1 10
+			default 2
+			help
+				number of samples for the temperature mean filter
+
+		config TEMP_WINDOW_SIZE
+			int "temperature window size"
+			range 1 10
+			default 5
+			help
+				moving average to send
+
+		config SEND_FREQ_H
+			int "humidity sending frequency"
+			range 1000000 1000000000000
+			default 5000000
+			help
+				microseconds of sending frequency
+
+		config HUM_N_SAMPLES
+			int "humidity sample number"
+			range 1 10
+			default 2
+			help
+				number of samples for the humidity mean filter
+
+		config HUM_WINDOW_SIZE
+			int "humidity window size"
+			range 1 10
+			default 5
+			help
+				moving average to send
+	endmenu
+	menu "ccs811 sensor"
+		config SEND_FREQ_CO2
+			int "co2 sending frequency"
+			range 1000000 1000000000000
+			default 5000000
+			help
+				microseconds of sending frequency
+
+		config CO2_N_SAMPLES
+			int "co2 sample number"
+			range 1 10
+			default 2
+			help
+				number of samples for the co2 mean filter
+
+		config CO2_WINDOW_SIZE
+			int "co2 window size"
+			range 1 10
+			default 5
+			help
+				moving average to send
+
+		config CCS811_ENV_VARS_T
+			int "adjust environment variables time"
+			range 120 1000000000000
+			default 3600
+			help
+				seconds to adjust temperature and humidity compensation
+	endmenu
+	menu "beacon counter"
+		config SEND_FREQ_BEACON_COUNTER
+			int "beacon device counter sending frequency"
+			range 1000000 1000000000000
+			default 5000000
+			help
+				sending frequency in microseconds
+
+		config BEACON_COUNTER_WINDOW_SIZE
+			int "beacon window size"
+			range 1 10
+			default 5
+			help
+				moving average to send
+
+		config UNREACHED_DEVICES_T
+			int "Time (minutes) to quit from buffer unreached devices"
+			range 1 10000
+			default 5
+			help
+				minutes to quit unreached devices from queue 
+	endmenu
+	menu "WiFi Connection Configuration"
+		config WIFI_SSID
+			string "WiFi SSID"
+			default "myssid"
+			help
+				SSID (network name) for the example to connect to.
+
+		config WIFI_PASSWORD
+			string "WiFi Password"
+			default "mypassword"
+			help
+				WiFi password (WPA or WPA2) for the example to use.
+				Can be left blank if the network has no security set.
+	endmenu
+endmenu
