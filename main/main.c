@@ -183,12 +183,12 @@ void app_main(void) {
         .event_queue = ccs811_queue,
     };
 
-    bool *b_enb = NULL;
-    uint32_t *b_d = NULL;
-    beacon_init_vars(b_enb, b_d);
+    bool b_enb = true;
+    uint32_t b_d = 0;
+    beacon_init_vars(&b_enb, &b_d);
     beacon_control_args_t beacon_control = {
-        .beacon_enb = b_enb,
-        .max_distance = b_d,
+        .beacon_enb = &b_enb,
+        .max_distance = &b_d,
         .init = &init_beacon_counter,
         .callback = &beacon_fsm,
     };

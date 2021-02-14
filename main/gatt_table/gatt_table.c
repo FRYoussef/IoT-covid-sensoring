@@ -142,7 +142,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                         if(queue != NULL && char_cfg[0] != descr_value)
                             xQueueSendToFront(queue, (void *) &ev_enb, 100);
                         else // means beacon devices
-                            *beacon_control->beacon_enb = true; 
+                            *beacon_control->beacon_enb = true;
                         
                         char_cfg[0] = descr_value;
 

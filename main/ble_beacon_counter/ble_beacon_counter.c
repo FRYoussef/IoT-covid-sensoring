@@ -11,8 +11,8 @@ esp_ble_scan_params_t ble_scan_params = {
 
 static const float MEASURED_POWER = -69.0f;
 static const float BEACON_N = 2.0f;
-bool beacon_enb = true;
-uint32_t max_distance = 20; //meters
+bool *beacon_enb = NULL;
+uint32_t *max_distance = NULL; //meters
 device_list_t d_list = {
     .size = DEVICE_LIST_INITIAL_N,
     .counter = 0,
@@ -48,7 +48,7 @@ void remove_device(int index) {
 void add_beacon_from(int rssi, uint8_t bda[]) {
     float d = pow(10, ((MEASURED_POWER - rssi)/(10 * BEACON_N)));
 
-    if(d > max_distance)
+    if(d > *max_distance)
         return;
 
     int index = find_address(bda);
@@ -90,12 +90,8 @@ void increase_list_size(void){
 
 
 void beacon_init_vars(bool *enb, uint32_t *d){
-    enb = &beacon_enb;
-    d = &max_distance;
-    
-    // avoid compiler error
-    *d = 20;
-    *enb = true;
+    beacon_enb = enb;
+    max_distance = d;
 
     d_list.devices = (beacon_device_t *) malloc(sizeof(beacon_device_t)*d_list.size);
 }
@@ -115,7 +111,7 @@ void init_beacon_counter(void) {
 
 
 void beacon_fsm(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
-    if(!beacon_enb)
+    if(!*beacon_enb)
         return;
 
     esp_err_t err;
@@ -167,7 +163,7 @@ int get_number_of_devices(void){
             mean += get_element(&d_list.devices[i].buffer);
 
         mean /= d_list.devices[i].buffer.counter;
-        if(mean <= max_distance)
+        if(mean <= *max_distance)
             devices++;
     }
 
