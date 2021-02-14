@@ -130,6 +130,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     char_cfg = cap_enb;
                     char_idx = IDX_CHAR_CAP_VAL;
                     val = (uint8_t *) &cap_char_value;
+                    foo = update_ble_devices_char;
                 }
 
                 if (char_cfg != NULL && param->write.len == 2){
@@ -138,8 +139,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     if (descr_value == 1){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify enable");
                         
-                        if(char_cfg[0] != descr_value)
+                        if(queue != NULL && char_cfg[0] != descr_value)
                             xQueueSendToFront(queue, (void *) &ev_enb, 100);
+                        else // means beacon devices
+                            *beacon_control->beacon_enb = true; 
                         
                         char_cfg[0] = descr_value;
 
@@ -152,8 +155,10 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                     else if (descr_value == 0){
                         ESP_LOGI(CONFIG_LOG_TAG, "notify disable ");
                         
-                        if(char_cfg[0] != descr_value)
+                        if(queue != NULL && char_cfg[0] != descr_value)
                             xQueueSendToFront(queue, (void *) &ev_enb, 100);
+                        else // means beacon devices
+                            *beacon_control->beacon_enb = false; 
 
                         char_cfg[0] = descr_value;
                     }else{
@@ -184,6 +189,7 @@ void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts
                 }
                 else if(sensoring_handle_table[IDX_CHAR_CAP_D_CFG] == param->write.handle && param->write.len == 2) {
                     copy_char(param->write.value, cap_ccc, 2);
+                    *beacon_control->max_distance = cap_ccc[1] << 8 | cap_ccc[0];
                     ESP_LOGI(CONFIG_LOG_TAG, "Modified IDX_CHAR_CAP_D_CFG to %d", cap_ccc[1] << 8 | cap_ccc[0]);
                 }
 
