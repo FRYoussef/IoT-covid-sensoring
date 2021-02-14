@@ -4,7 +4,7 @@
  **/
 #include "wifi_controller/wifi_controller.h"
 
-#define EXAMPLE_ESP_MAXIMUM_RETRY  5
+#define MAXIMUM_RETRY  3
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -25,14 +25,14 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (s_retry_num < EXAMPLE_ESP_MAXIMUM_RETRY) {
+        if (s_retry_num < MAXIMUM_RETRY) {
             esp_wifi_connect();
             s_retry_num++;
-            ESP_LOGI(CONFIG_LOG_TAG, "retry to connect to the AP");
+            ESP_LOGW(CONFIG_LOG_TAG, "retry to connect to the AP");
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
         }
-        ESP_LOGI(CONFIG_LOG_TAG,"connect to the AP fail");
+        ESP_LOGW(CONFIG_LOG_TAG,"connect to the AP fail");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         s_retry_num = 0;

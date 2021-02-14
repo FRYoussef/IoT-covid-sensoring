@@ -184,11 +184,11 @@ void app_main(void) {
     };
 
     bool b_enb = true;
-    uint32_t b_d = 0;
-    beacon_init_vars(&b_enb, &b_d);
+    uint32_t max_d = 20;
+    beacon_init_vars(&b_enb, &max_d);
     beacon_control_args_t beacon_control = {
         .beacon_enb = &b_enb,
-        .max_distance = &b_d,
+        .max_distance = &max_d,
         .init = &init_beacon_counter,
         .callback = &beacon_fsm,
     };

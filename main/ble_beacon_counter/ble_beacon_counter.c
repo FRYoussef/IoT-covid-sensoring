@@ -133,7 +133,6 @@ void beacon_fsm(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
         switch (scan_result->scan_rst.search_evt) {
         case ESP_GAP_SEARCH_INQ_RES_EVT:
                 add_beacon_from(scan_result->scan_rst.rssi, scan_result->scan_rst.bda);
-                ESP_LOGI(CONFIG_LOG_TAG, "RSSI = %i", scan_result->scan_rst.rssi);
             break;
         default:
             break;
