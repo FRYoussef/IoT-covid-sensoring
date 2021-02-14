@@ -22,6 +22,7 @@
 typedef enum
 {
     SI7021_DEFAULT,
+    SI7021_DEEP_SLEEP,
     TEMP_SAMPLE,
     TEMP_SAMPLE_FREQ,
     TEMP_ENABLE,

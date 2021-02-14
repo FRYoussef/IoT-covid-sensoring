@@ -169,6 +169,8 @@ void ccs811_task(void *arg) {
                 esp_timer_start_once(timer_env_vars, get_time_micros(CONFIG_CCS811_ENV_VARS_T));
             }
         }
+        else if (ev == CCS811_DEEP_SLEEP)
+            break;
         
         do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);
     }

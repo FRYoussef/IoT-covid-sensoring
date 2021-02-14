@@ -145,6 +145,9 @@ void si7021_task(void *arg) {
             ESP_LOGI(CONFIG_LOG_TAG, "Changed humidity sample to each %d s", *params->hum_samp_freq);
             esp_timer_start_periodic(timer_hum, get_time_micros(*params->hum_samp_freq));
         }
+        else if (ev == SI7021_DEEP_SLEEP)
+            break;
+        
         
         do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);
     }

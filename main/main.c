@@ -202,14 +202,21 @@ void app_main(void) {
     while(1) { 
         vTaskDelay(pdMS_TO_TICKS(main_sleep*1000));
 #ifdef CONFIG_DEEP_SLEEP
+        // notify deep sleep
+        si7021_event_t ev1 = SI7021_DEEP_SLEEP;
+        ccs811_event_t ev2 = CCS811_DEEP_SLEEP;
+        xQueueSendToFront(si7021_queue, (void *) &ev1, 100);
+        xQueueSendToFront(ccs811_queue, (void *) &ev2, 100);
+        free_beacon_mem();
+        // close vfs
+        esp_vfs_fat_spiflash_unmount(vfs_path, s_wl_handle);
+
+
         time(&now);
         localtime_r(&now, &timeinfo);
         deep_micros = get_seconds_among_hours(timeinfo.tm_hour, CONFIG_DEEP_SLEEP_STOP);
         deep_micros -= (timeinfo.tm_min * 60) + timeinfo.tm_sec;
         go_low_energy_mode(get_time_micros(deep_micros));
-
-        // close vfs
-        esp_vfs_fat_spiflash_unmount(vfs_path, s_wl_handle);
 #endif
     }
 

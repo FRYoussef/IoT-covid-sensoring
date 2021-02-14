@@ -37,6 +37,7 @@ typedef enum{
 typedef enum
 {
     CCS811_DEFAULT,
+    CCS811_DEEP_SLEEP,
     CO2_SAMPLE,
     CO2_SAMPLE_FREQ,
     CO2_ENABLE,
