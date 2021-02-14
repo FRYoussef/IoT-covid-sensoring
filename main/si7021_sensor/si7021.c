@@ -149,6 +149,10 @@ void si7021_task(void *arg) {
         do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);
     }
 
+    esp_timer_stop(timer_temp);
+    esp_timer_delete(timer_temp);
+    esp_timer_stop(timer_hum);
+    esp_timer_delete(timer_hum);
     free_buffer(&tBuffer);
     free_buffer(&hBuffer);
     vTaskDelete(NULL);

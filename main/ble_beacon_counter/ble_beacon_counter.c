@@ -18,6 +18,33 @@ device_list_t d_list = {
     .counter = 0,
     .devices = NULL,
 };
+esp_timer_handle_t cleaner_timer;
+const esp_timer_create_args_t chrono_args = {
+    .callback = &chrono_clean_unreached,
+    .name = "Unreached devices cleaners",
+};
+
+
+/**
+ * Removes unreachable devices for CONFIG_UNREACHED_DEVICES_T minutes. 
+ */
+void chrono_clean_unreached(void) {
+    int seconds = CONFIG_UNREACHED_DEVICES_T*60;
+    uint32_t now = time(NULL);
+    const int n = 10;
+    uint16_t indices[n];
+    int n_indices = 0;
+
+    for(int i = 0; i < d_list.counter; i++){
+        if((d_list.devices[i].last_timestamp - now) > seconds) {
+            indices[n_indices] = i;
+            n_indices = (n_indices + 1) % n;
+        }
+    }
+
+    for(int i = n_indices-1; i >= 0; i--)
+        remove_device(indices[i]);
+}
 
 
 int find_address(uint8_t bda[]){
@@ -52,8 +79,7 @@ void add_beacon_from(int rssi, uint8_t bda[]) {
         return;
 
     int index = find_address(bda);
-    time_t now;
-    time(&now);
+    uint32_t now = time(NULL);
 
     if(index == -1) {
         if(d_list.counter == d_list.size)
@@ -102,11 +128,15 @@ void free_beacon_mem(void){
         free_buffer(&d_list.devices[i].buffer);
 
     free(d_list.devices);
+    esp_timer_stop(cleaner_timer);
+    esp_timer_delete(cleaner_timer);
 }
 
 
 void init_beacon_counter(void) {
     esp_ble_gap_set_scan_params(&ble_scan_params);
+    esp_timer_create(&chrono_args, &cleaner_timer);
+    esp_timer_start_periodic(cleaner_timer, CONFIG_UNREACHED_DEVICES_T*60*1000000);
 }
 
 

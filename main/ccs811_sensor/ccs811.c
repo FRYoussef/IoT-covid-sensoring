@@ -173,6 +173,10 @@ void ccs811_task(void *arg) {
         do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);
     }
 
+    esp_timer_stop(timer_co2);
+    esp_timer_delete(timer_co2);
+    esp_timer_stop(timer_env_vars);
+    esp_timer_delete(timer_env_vars);
     free_buffer(&co2_buffer);
     vTaskDelete(NULL);
 }

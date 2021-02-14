@@ -187,7 +187,7 @@ menu "ESP32 sensoring configuration"
 				moving average to send
 
 		config UNREACHED_DEVICES_T
-			int "Time to quit from buffer unreached devices"
+			int "Time (minutes) to quit from buffer unreached devices"
 			range 1 10000
 			default 5
 			help

@@ -8,8 +8,10 @@
 
 #include <time.h>
 #include <math.h>
+#include "esp_timer.h"
 #include "esp_log.h"
 #include "esp_gap_ble_api.h"
+
 #include "circular_buffer/circular_buffer.h"
 
 #define DEVICE_LIST_INITIAL_N 5
@@ -26,7 +28,7 @@ typedef struct
 typedef struct
 {
     uint8_t addr[ESP_BD_ADDR_LEN];
-    time_t last_timestamp;
+    uint32_t last_timestamp;
     struct CircularBuffer buffer;
 } beacon_device_t;
 
@@ -49,5 +51,6 @@ void increase_list_size(void);
 void remove_device(int index);
 void update_ble_devices_char(void *arg);
 int get_number_of_devices(void);
+void chrono_clean_unreached(void);
 
 #endif
