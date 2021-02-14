@@ -16,6 +16,9 @@ void copy_char(uint8_t *in, uint8_t *out, int n){
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
+    // beacon counter action
+    beacon_control->callback(event, param);
+
     switch (event) {
         case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
             adv_config_done &= (~ADV_CONFIG_FLAG);
@@ -33,16 +36,11 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
             /* advertising start complete event to indicate advertising start successfully or failed */
             if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
                 ESP_LOGE(CONFIG_LOG_TAG, "advertising start failed");
-            }else{
-                ESP_LOGI(CONFIG_LOG_TAG, "advertising start successfully");
             }
             break;
         case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
             if (param->adv_stop_cmpl.status != ESP_BT_STATUS_SUCCESS) {
                 ESP_LOGE(CONFIG_LOG_TAG, "Advertising stop failed");
-            }
-            else {
-                ESP_LOGI(CONFIG_LOG_TAG, "Stop adv successfully\n");
             }
             break;
         case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
@@ -280,9 +278,10 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     } while (0);
 }
 
-void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2) {
+void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2, beacon_control_args_t *c3) {
     si7021_control = c1;
     ccs811_control = c2;
+    beacon_control = c3;
     esp_err_t ret;
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
@@ -311,6 +310,9 @@ void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2)
         ESP_LOGE(CONFIG_LOG_TAG, "%s enable bluetooth failed: %s", __func__, esp_err_to_name(ret));
         return;
     }
+
+    // init beacon counter
+    beacon_control->init();
 
     ret = esp_ble_gatts_register_callback(gatts_event_handler);
     if (ret){

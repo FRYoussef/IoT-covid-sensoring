@@ -24,6 +24,7 @@
 
 #include "si7021_sensor/si7021.h"
 #include "ccs811_sensor/ccs811.h"
+#include "ble_beacon_counter/ble_beacon_counter.h"
 
 /* Attributes State Machine */
 enum GattAttr{
@@ -131,11 +132,12 @@ static struct gatts_profile_inst sensoring_profile_tab[PROFILE_NUM] = {
     },
 };
 
-/* queue events */
+/* control args and queue events */
 static si7021_control_args_t *si7021_control;
 static si7021_event_t si7021_ev;
 static ccs811_control_args_t *ccs811_control;
 static ccs811_event_t ccs811_ev;
+static beacon_control_args_t *beacon_control;
 
 /* Service */
 static const uint16_t GATTS_SERVICE_UUID           = 0x00FF;
@@ -252,6 +254,6 @@ static const esp_gatts_attr_db_t gatt_db[SEN_IDX_NB] =
       sizeof(uint16_t), sizeof(cap_enb), (uint8_t *)cap_enb}},
 };
 
-void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2);
+void configure_gatt_server(si7021_control_args_t *c1, ccs811_control_args_t *c2, beacon_control_args_t *c3);
 
 #endif
