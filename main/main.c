@@ -151,6 +151,11 @@ void app_main(void) {
     }
 #endif
 
+    //Initialize or reinitialize TWDT
+    esp_task_wdt_init(CONFIG_TWDT_TIMEOUT_S, false);
+    esp_task_wdt_add(NULL);
+    esp_task_wdt_status(NULL);
+
     ESP_ERROR_CHECK(i2c_master_init());
 
     SemaphoreHandle_t i2c_sem = xSemaphoreCreateBinary();
@@ -199,26 +204,28 @@ void app_main(void) {
     xTaskCreatePinnedToCore(&si7021_task, "si7021_task", 1024 * 3, (void*)&si7021_args, uxTaskPriorityGet(NULL), NULL, 1);
     xTaskCreatePinnedToCore(&ccs811_task, "ccs811_task", 1024 * 2, (void*)&ccs811_args, uxTaskPriorityGet(NULL), NULL, 0);
 
-    while(1) { 
-        vTaskDelay(pdMS_TO_TICKS(main_sleep*1000));
+    int start = time(NULL);
+    while(1) {
+        esp_task_wdt_reset();
+        vTaskDelay(pdMS_TO_TICKS(5000));
+
 #ifdef CONFIG_DEEP_SLEEP
-        // notify deep sleep
-        si7021_event_t ev1 = SI7021_DEEP_SLEEP;
-        ccs811_event_t ev2 = CCS811_DEEP_SLEEP;
-        xQueueSendToFront(si7021_queue, (void *) &ev1, 100);
-        xQueueSendToFront(ccs811_queue, (void *) &ev2, 100);
-        free_beacon_mem();
-        // close vfs
-        esp_vfs_fat_spiflash_unmount(vfs_path, s_wl_handle);
+        if((time(NULL) - start) > main_sleep) {
+            // notify deep sleep
+            si7021_event_t ev1 = SI7021_DEEP_SLEEP;
+            ccs811_event_t ev2 = CCS811_DEEP_SLEEP;
+            xQueueSendToFront(si7021_queue, (void *) &ev1, 100);
+            xQueueSendToFront(ccs811_queue, (void *) &ev2, 100);
+            free_beacon_mem();
+            // close vfs
+            esp_vfs_fat_spiflash_unmount(vfs_path, s_wl_handle);
 
-
-        time(&now);
-        localtime_r(&now, &timeinfo);
-        deep_micros = get_seconds_among_hours(timeinfo.tm_hour, CONFIG_DEEP_SLEEP_STOP);
-        deep_micros -= (timeinfo.tm_min * 60) + timeinfo.tm_sec;
-        go_low_energy_mode(get_time_micros(deep_micros));
+            time(&now);
+            localtime_r(&now, &timeinfo);
+            deep_micros = get_seconds_among_hours(timeinfo.tm_hour, CONFIG_DEEP_SLEEP_STOP);
+            deep_micros -= (timeinfo.tm_min * 60) + timeinfo.tm_sec;
+            go_low_energy_mode(get_time_micros(deep_micros));
+        }
 #endif
     }
-
-    free_beacon_mem();
 }

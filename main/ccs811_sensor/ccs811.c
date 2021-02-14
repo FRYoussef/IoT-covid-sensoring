@@ -115,9 +115,13 @@ void ccs811_task(void *arg) {
     }
 
     if(start) {
-        ESP_LOGI(CONFIG_LOG_TAG, "ccs811 task started");
         esp_timer_start_once(timer_env_vars, get_time_micros(CCS811_FISRT_ENV_VARS_T));
         esp_timer_start_periodic(timer_co2, get_time_micros(*params->co2_samp_freq));
+
+        //Subscribe this task to TWDT, then check if it is subscribed
+        esp_task_wdt_add(NULL);
+        esp_task_wdt_status(NULL);
+        ESP_LOGI(CONFIG_LOG_TAG, "ccs811 task started");
     }
 
     while (start) {
@@ -172,7 +176,10 @@ void ccs811_task(void *arg) {
         else if (ev == CCS811_DEEP_SLEEP)
             break;
         
-        do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);
+        do {
+            esp_task_wdt_reset();
+            q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);
+        } while(!q_ready);
     }
 
     esp_timer_stop(timer_co2);

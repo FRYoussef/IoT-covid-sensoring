@@ -14,6 +14,7 @@
 #include "esp_sntp.h"
 #include "esp_vfs.h"
 #include "esp_vfs_fat.h"
+#include "esp_task_wdt.h"
 
 #include "gatt_table/gatt_table.h"
 #include "i2c_controller/i2c_controller.h"

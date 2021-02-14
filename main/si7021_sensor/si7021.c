@@ -86,6 +86,11 @@ void si7021_task(void *arg) {
 
     esp_timer_start_periodic(timer_temp, get_time_micros(*params->temp_samp_freq));
     esp_timer_start_periodic(timer_hum, get_time_micros(*params->hum_samp_freq));
+
+    //Subscribe this task to TWDT, then check if it is subscribed
+    esp_task_wdt_add(NULL);
+    esp_task_wdt_status(NULL);
+
     ESP_LOGI(CONFIG_LOG_TAG, "si7021 task started");
 
     while (1) {
@@ -149,7 +154,10 @@ void si7021_task(void *arg) {
             break;
         
         
-        do {q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);} while(!q_ready);
+        do {
+            esp_task_wdt_reset();
+            q_ready = xQueueReceive(params->event_queue, (void *) &ev, 2000);
+        } while(!q_ready);
     }
 
     esp_timer_stop(timer_temp);

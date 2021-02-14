@@ -73,6 +73,13 @@ menu "ESP32 sensoring configuration"
 		help
 			Log tag to show or store app logouts.
 
+	config TWDT_TIMEOUT_S
+		int "Watchdog timeout in seconds"
+		range 10 100000
+		default 20
+		help
+			Watchdog timeout to avoid program blocks.
+
 	menu "I2C Master"
 		config I2C_MASTER_SCL
 			int "SCL GPIO Num"
